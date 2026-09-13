@@ -1,4 +1,11 @@
 .DS_Store
 *.log
+.env
+.env.*
+
+# AI workflow files — keep out of the public repo
 AGENTS.md
 CLAUDE.md
+.claude/
+docs/OPERATOR_RUNBOOK.md
+MANUAL_STEPS.md
