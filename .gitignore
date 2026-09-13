@@ -9,3 +9,5 @@ CLAUDE.md
 .claude/
 docs/OPERATOR_RUNBOOK.md
 MANUAL_STEPS.md
+scripts/autonomous-run.sh
+logs/
