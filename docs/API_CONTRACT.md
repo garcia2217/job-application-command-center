@@ -10,7 +10,7 @@ only the decisions a schema can't express.
 - **Opaque session tokens, not JWT.** Sign-in creates a DB-backed session
   (7 days, fixed expiry); sign-out deletes it, revoking immediately.
 - `POST /auth/login` returns the session token and its expiry **in the response
-  body**. The frontend's sign-in Server Action stores it as a first-party
+  body**: `{ "token": "...", "expires_at": "<ISO 8601 UTC>" }`. The frontend's sign-in Server Action stores it as a first-party
   `session` cookie (httpOnly, Secure, SameSite=Lax) on the Next.js domain.
 - Every other endpoint expects the token via the `Cookie: session=<token>`
   header, forwarded by the frontend API client. Invalid, expired, or revoked
@@ -60,6 +60,16 @@ Initial set (grows as features land; keep this list current):
 | `CONFLICT` | 409 | Generic state conflict |
 | `COMPANY_NAME_TAKEN` | 409 | Company name exists case-insensitively (AC-02.4) |
 | `INTERNAL_ERROR` | 500 | Unexpected failure; generic body only |
+
+## Wire values
+
+- Field names are **snake_case** in requests, responses, and `errors[].field`.
+- Enums serialize **lowercase**: statuses `wishlist | applied | interviewing |
+  offer | rejected | withdrawn`, stage outcomes `pending | passed | failed`,
+  work arrangements `on_site | hybrid | remote`. Display casing ("Wishlist",
+  "On-site") is a frontend concern.
+- Timestamps are ISO 8601 in UTC; the frontend renders them in the account's
+  time zone (NFR-08).
 
 ## Frontend types
 
