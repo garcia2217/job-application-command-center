@@ -3,8 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clock import utcnow
-from app.models import Account, Application, Company
-from app.models.enums import ApplicationStatus
+from app.models import Account, Application, ApplicationStatus, Company
 
 
 def make_account(email: str = "owner@example.com") -> Account:
