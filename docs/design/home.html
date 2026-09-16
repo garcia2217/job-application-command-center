@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home — Job Application Command Center</title>
+<style>
+  :root {
+    --bg: #f7f7f8;
+    --surface: #ffffff;
+    --surface-sunken: #f1f1f3;
+    --border: #e3e3e7;
+    --border-strong: #c9c9d1;
+    --text: #1b1b1f;
+    --text-muted: #5f5f6b;
+    --text-faint: #86868f;
+    --accent: #3b4ee0;
+    --accent-hover: #2f3fc4;
+    --accent-soft: #eceefc;
+    --warn: #a35a00;
+    --warn-soft: #fdf1e0;
+    --danger: #b3261e;
+    --ok: #1a6b47;
+
+    --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+    --space-5: 24px; --space-6: 32px; --space-7: 48px;
+    --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px;
+    --shadow: 0 1px 2px rgba(20,20,30,.06), 0 1px 3px rgba(20,20,30,.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #131316; --surface: #1b1b1f; --surface-sunken: #232328;
+      --border: #2e2e35; --border-strong: #44444e;
+      --text: #ececf0; --text-muted: #a1a1ac; --text-faint: #7d7d88;
+      --accent: #8a97ff; --accent-hover: #a3adff; --accent-soft: #23253d;
+      --warn: #e5a75a; --warn-soft: #34291a;
+      --danger: #f2837c; --ok: #6fc79b;
+      --shadow: 0 1px 2px rgba(0,0,0,.4);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+
+  /* ---------- App frame ---------- */
+  .app { min-height: 100vh; }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .brand { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .brand span { color: var(--text-faint); font-weight: 400; }
+  .topbar .spacer { flex: 1; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    min-height: 40px; padding: 0 var(--space-4);
+    font: inherit; font-size: 14px; font-weight: 500;
+    border-radius: var(--radius-sm); border: 1px solid var(--border-strong);
+    background: var(--surface); color: var(--text);
+    cursor: pointer; text-decoration: none; white-space: nowrap;
+  }
+  .btn:hover { background: var(--surface-sunken); }
+  .btn-primary {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+  }
+  @media (prefers-color-scheme: dark) { .btn-primary { color: #14142a; } }
+  .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn-sm { min-height: 32px; padding: 0 var(--space-3); font-size: 13px; }
+  .btn-ghost { border-color: transparent; background: transparent; color: var(--text-muted); }
+  .btn-ghost:hover { background: var(--surface-sunken); color: var(--text); }
+
+  /* ---------- Layout ---------- */
+  .shell { display: block; }
+  .sidebar { display: none; }
+  .main {
+    padding: var(--space-5) var(--space-4) 96px;
+    max-width: 1200px; margin: 0 auto;
+  }
+  .page-head { margin-bottom: var(--space-5); }
+  .page-head h1 { font-size: 22px; }
+  .page-head p { margin: var(--space-1) 0 0; color: var(--text-muted); font-size: 14px; }
+
+  .columns { display: block; }
+
+  section + section { margin-top: var(--space-6); }
+  .section-head {
+    display: flex; align-items: baseline; gap: var(--space-3);
+    margin-bottom: var(--space-3);
+  }
+  .section-head h2 { font-size: 15px; }
+  .section-head .count { font-size: 13px; color: var(--text-faint); }
+  .section-head .spacer { flex: 1; }
+  .section-head a { font-size: 13px; color: var(--accent); text-decoration: none; font-weight: 500; }
+  .section-head a:hover { text-decoration: underline; }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  /* ---------- Follow-up queue ---------- */
+  .queue { list-style: none; margin: 0; padding: 0; }
+  .queue li + li { border-top: 1px solid var(--border); }
+  .queue-row {
+    display: flex; align-items: center; gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    text-decoration: none; min-height: 60px;
+  }
+  .queue-row:hover { background: var(--surface-sunken); }
+  .queue-main { flex: 1; min-width: 0; }
+  .queue-title { font-size: 15px; font-weight: 500; }
+  .queue-title .role { color: var(--text-muted); font-weight: 400; }
+  .queue-meta {
+    margin-top: 2px; font-size: 13px; color: var(--text-muted);
+    display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;
+  }
+  .silent {
+    font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 500;
+    color: var(--warn); background: var(--warn-soft);
+    padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+  }
+  .silent.urgent { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+
+  /* ---------- Status ---------- */
+  .status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--text-faint); }
+  .dot.wishlist     { background: #9a9aa5; }
+  .dot.applied      { background: #4f7fd6; }
+  .dot.interviewing { background: #c98a1f; }
+  .dot.offer        { background: #2f9e6a; }
+  .dot.rejected     { background: #c4554d; }
+  .dot.withdrawn    { background: #7d7d88; }
+
+  /* ---------- Week ahead ---------- */
+  .week { list-style: none; margin: 0; padding: 0; }
+  .week li + li { border-top: 1px solid var(--border); }
+  .week-row {
+    display: flex; gap: var(--space-3); align-items: flex-start;
+    padding: var(--space-3) var(--space-4); text-decoration: none; min-height: 60px;
+  }
+  .week-row:hover { background: var(--surface-sunken); }
+  .when {
+    flex: none; width: 58px; text-align: center; padding-top: 2px;
+  }
+  .when .day { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); }
+  .when .date { display: block; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .when .time { display: block; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .week-main { min-width: 0; }
+  .week-stage { font-size: 15px; font-weight: 500; }
+  .week-sub { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+  .today-flag { color: var(--accent); font-weight: 600; }
+
+  /* ---------- Empty state ---------- */
+  .empty {
+    padding: var(--space-6) var(--space-4); text-align: center; color: var(--text-muted);
+  }
+  .empty strong { display: block; color: var(--text); font-weight: 500; margin-bottom: var(--space-1); }
+  .empty p { margin: 0; font-size: 14px; }
+
+  /* ---------- Filter bar ---------- */
+  .filters {
+    display: flex; gap: var(--space-2); overflow-x: auto;
+    padding-bottom: var(--space-2); margin-bottom: var(--space-3);
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .filters::-webkit-scrollbar { display: none; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    min-height: 36px; padding: 0 var(--space-3);
+    font: inherit; font-size: 13px; white-space: nowrap;
+    border: 1px solid var(--border-strong); border-radius: 999px;
+    background: var(--surface); color: var(--text-muted); cursor: pointer;
+  }
+  .chip:hover { background: var(--surface-sunken); color: var(--text); }
+  .chip[aria-pressed="true"] {
+    background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 500;
+  }
+  .chip .n { font-variant-numeric: tabular-nums; color: var(--text-faint); }
+  .chip[aria-pressed="true"] .n { color: inherit; }
+
+  /* ---------- Applications: cards (mobile) ---------- */
+  .cards { list-style: none; margin: 0; padding: 0; }
+  .cards li + li { border-top: 1px solid var(--border); }
+  .card-row {
+    display: block; padding: var(--space-3) var(--space-4); text-decoration: none;
+  }
+  .card-row:hover { background: var(--surface-sunken); }
+  .card-top { display: flex; align-items: baseline; gap: var(--space-2); }
+  .card-company { font-size: 15px; font-weight: 500; }
+  .card-role { font-size: 14px; color: var(--text-muted); margin-top: 1px; }
+  .card-meta {
+    margin-top: var(--space-2); display: flex; gap: var(--space-3);
+    flex-wrap: wrap; font-size: 13px; color: var(--text-faint);
+  }
+
+  /* ---------- Applications: table (desktop) ---------- */
+  .table-wrap { display: none; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead th {
+    text-align: left; font-size: 12px; font-weight: 500; letter-spacing: .03em;
+    text-transform: uppercase; color: var(--text-faint);
+    padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  thead th.sortable { cursor: pointer; }
+  thead th.sortable:hover { color: var(--text); }
+  tbody tr { border-bottom: 1px solid var(--border); }
+  tbody tr:last-child { border-bottom: 0; }
+  tbody tr:hover { background: var(--surface-sunken); }
+  tbody td { padding: var(--space-3) var(--space-4); vertical-align: middle; }
+  td.company { font-weight: 500; }
+  td.company a { text-decoration: none; }
+  td.role { color: var(--text-muted); }
+  td.num { color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .flagged-mark {
+    display: inline-block; margin-left: 6px; font-size: 12px; color: var(--warn);
+    vertical-align: 1px;
+  }
+
+  /* ---------- Mobile bottom nav ---------- */
+  .bottomnav {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
+    display: flex; background: var(--surface); border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .bottomnav a {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; min-height: 56px; text-decoration: none;
+    font-size: 11px; color: var(--text-muted);
+  }
+  .bottomnav a[aria-current="page"] { color: var(--accent); font-weight: 500; }
+  .bottomnav svg { width: 20px; height: 20px; }
+
+  .fab { display: none; }
+
+  /* ================= Desktop ================= */
+  @media (min-width: 900px) {
+    .bottomnav { display: none; }
+    .topbar { padding: var(--space-3) var(--space-5); }
+    .shell { display: grid; grid-template-columns: 220px 1fr; align-items: start; }
+    .sidebar {
+      display: block; position: sticky; top: 57px;
+      height: calc(100vh - 57px);
+      padding: var(--space-5) var(--space-3);
+      border-right: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .nav { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+    .nav a {
+      display: flex; align-items: center; gap: var(--space-3);
+      padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm);
+      text-decoration: none; font-size: 14px; color: var(--text-muted);
+    }
+    .nav a:hover { background: var(--surface-sunken); color: var(--text); }
+    .nav a[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+    .nav svg { width: 18px; height: 18px; flex: none; }
+    .nav .badge {
+      margin-left: auto; font-size: 12px; font-variant-numeric: tabular-nums;
+      background: var(--warn-soft); color: var(--warn);
+      padding: 1px 7px; border-radius: 999px;
+    }
+    .main { padding: var(--space-6) var(--space-6) var(--space-7); }
+    .page-head h1 { font-size: 26px; }
+    .columns {
+      display: grid; grid-template-columns: minmax(0,1fr) 320px; gap: var(--space-6);
+      align-items: start;
+    }
+    .columns > aside > section:first-child { margin-top: 0; }
+    .cards { display: none; }
+    .table-wrap { display: block; }
+  }
+  @media (min-width: 1280px) {
+    .columns { grid-template-columns: minmax(0,1fr) 360px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">Command Center <span>· demo account</span></div>
+    <div class="spacer"></div>
+    <button class="btn btn-sm btn-ghost" type="button">Search</button>
+    <button class="btn btn-sm btn-primary" type="button">Add application</button>
+  </header>
+
+  <div class="shell">
+
+    <nav class="sidebar" aria-label="Main">
+      <ul class="nav">
+        <li><a href="#" aria-current="page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+          Home</a></li>
+        <li><a href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 13h8M8 17h5"/></svg>
+          Applications <span class="badge">14</span></a></li>
+        <li><a href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 21V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16M14 10h5a1 1 0 0 1 1 1v10M3 21h18M8 8h2M8 12h2M8 16h2"/></svg>
+          Companies</a></li>
+        <li><a href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
+          Contacts</a></li>
+        <li><a href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7.5 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H1.7a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 3.4 7.5"/></svg>
+          Settings</a></li>
+      </ul>
+    </nav>
+
+    <main class="main">
+
+      <div class="page-head">
+        <h1>Monday, 16 March</h1>
+        <p>3 applications have gone quiet · 2 interviews this week</p>
+      </div>
+
+      <div class="columns">
+
+        <div>
+          <!-- ===== PRIMARY: the action queue ===== -->
+          <section aria-labelledby="followup-h">
+            <div class="section-head">
+              <h2 id="followup-h">Needs follow-up</h2>
+              <span class="count">3</span>
+              <span class="spacer"></span>
+              <span class="count">Quiet after 7 days</span>
+            </div>
+            <div class="panel">
+              <ul class="queue">
+                <li>
+                  <a class="queue-row" href="#">
+                    <span class="queue-main">
+                      <span class="queue-title">Vercel <span class="role">· Senior Backend Engineer</span></span>
+                      <span class="queue-meta">
+                        <span class="status"><span class="dot interviewing"></span>Interviewing</span>
+                        <span aria-hidden="true">·</span>
+                        <span>Applied 12 Feb</span>
+                      </span>
+                    </span>
+                    <span class="silent urgent">24d silent</span>
+                  </a>
+                </li>
+                <li>
+                  <a class="queue-row" href="#">
+                    <span class="queue-main">
+                      <span class="queue-title">Supabase <span class="role">· Platform Engineer</span></span>
+                      <span class="queue-meta">
+                        <span class="status"><span class="dot applied"></span>Applied</span>
+                        <span aria-hidden="true">·</span>
+                        <span>Applied 24 Feb</span>
+                      </span>
+                    </span>
+                    <span class="silent">15d silent</span>
+                  </a>
+                </li>
+                <li>
+                  <a class="queue-row" href="#">
+                    <span class="queue-main">
+                      <span class="queue-title">Neon <span class="role">· Backend Engineer, Control Plane</span></span>
+                      <span class="queue-meta">
+                        <span class="status"><span class="dot wishlist"></span>Wishlist</span>
+                        <span aria-hidden="true">·</span>
+                        <span>Saved 7 Mar</span>
+                      </span>
+                    </span>
+                    <span class="silent">9d silent</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </section>
+
+          <!-- ===== SECONDARY: the pipeline ===== -->
+          <section aria-labelledby="apps-h">
+            <div class="section-head">
+              <h2 id="apps-h">Applications</h2>
+              <span class="spacer"></span>
+              <a href="#">View all 14</a>
+            </div>
+
+            <div class="filters" role="group" aria-label="Filter by status">
+              <button class="chip" type="button" aria-pressed="true">All <span class="n">14</span></button>
+              <button class="chip" type="button" aria-pressed="false">Wishlist <span class="n">2</span></button>
+              <button class="chip" type="button" aria-pressed="false">Applied <span class="n">5</span></button>
+              <button class="chip" type="button" aria-pressed="false">Interviewing <span class="n">3</span></button>
+              <button class="chip" type="button" aria-pressed="false">Offer <span class="n">1</span></button>
+              <button class="chip" type="button" aria-pressed="false">Rejected <span class="n">2</span></button>
+              <button class="chip" type="button" aria-pressed="false">Withdrawn <span class="n">1</span></button>
+            </div>
+
+            <div class="panel">
+              <!-- Desktop table -->
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th scope="col">Company</th>
+                      <th scope="col">Role</th>
+                      <th scope="col">Status</th>
+                      <th scope="col" class="sortable" aria-sort="none">Applied</th>
+                      <th scope="col" class="sortable" aria-sort="descending">Last activity ↓</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="company"><a href="#">Anthropic</a></td>
+                      <td class="role">Backend Engineer, API Platform</td>
+                      <td><span class="status"><span class="dot offer"></span>Offer</span></td>
+                      <td class="num">2 Feb</td>
+                      <td class="num">Today</td>
+                    </tr>
+                    <tr>
+                      <td class="company"><a href="#">Linear</a></td>
+                      <td class="role">Fullstack Engineer</td>
+                      <td><span class="status"><span class="dot interviewing"></span>Interviewing</span></td>
+                      <td class="num">20 Feb</td>
+                      <td class="num">Yesterday</td>
+                    </tr>
+                    <tr>
+                      <td class="company"><a href="#">Stripe</a></td>
+                      <td class="role">Software Engineer, Payments</td>
+                      <td><span class="status"><span class="dot interviewing"></span>Interviewing</span></td>
+                      <td class="num">14 Feb</td>
+                      <td class="num">4 days ago</td>
+                    </tr>
+                    <tr>
+                      <td class="company"><a href="#">Neon</a><span class="flagged-mark" title="Needs follow-up">●</span></td>
+                      <td class="role">Backend Engineer, Control Plane</td>
+                      <td><span class="status"><span class="dot wishlist"></span>Wishlist</span></td>
+                      <td class="num">—</td>
+                      <td class="num">9 days ago</td>
+                    </tr>
+                    <tr>
+                      <td class="company"><a href="#">Supabase</a><span class="flagged-mark" title="Needs follow-up">●</span></td>
+                      <td class="role">Platform Engineer</td>
+                      <td><span class="status"><span class="dot applied"></span>Applied</span></td>
+                      <td class="num">24 Feb</td>
+                      <td class="num">15 days ago</td>
+                    </tr>
+                    <tr>
+                      <td class="company"><a href="#">Vercel</a><span class="flagged-mark" title="Needs follow-up">●</span></td>
+                      <td class="role">Senior Backend Engineer</td>
+                      <td><span class="status"><span class="dot interviewing"></span>Interviewing</span></td>
+                      <td class="num">12 Feb</td>
+                      <td class="num">24 days ago</td>
+                    </tr>
+                    <tr>
+                      <td class="company"><a href="#">Figma</a></td>
+                      <td class="role">Backend Engineer, Infrastructure</td>
+                      <td><span class="status"><span class="dot rejected"></span>Rejected</span></td>
+                      <td class="num">8 Jan</td>
+                      <td class="num">28 days ago</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Mobile cards -->
+              <ul class="cards">
+                <li><a class="card-row" href="#">
+                  <span class="card-top"><span class="card-company">Anthropic</span></span>
+                  <span class="card-role">Backend Engineer, API Platform</span>
+                  <span class="card-meta">
+                    <span class="status"><span class="dot offer"></span>Offer</span>
+                    <span>Last activity today</span>
+                  </span>
+                </a></li>
+                <li><a class="card-row" href="#">
+                  <span class="card-top"><span class="card-company">Linear</span></span>
+                  <span class="card-role">Fullstack Engineer</span>
+                  <span class="card-meta">
+                    <span class="status"><span class="dot interviewing"></span>Interviewing</span>
+                    <span>Last activity yesterday</span>
+                  </span>
+                </a></li>
+                <li><a class="card-row" href="#">
+                  <span class="card-top"><span class="card-company">Stripe</span></span>
+                  <span class="card-role">Software Engineer, Payments</span>
+                  <span class="card-meta">
+                    <span class="status"><span class="dot interviewing"></span>Interviewing</span>
+                    <span>4 days ago</span>
+                  </span>
+                </a></li>
+                <li><a class="card-row" href="#">
+                  <span class="card-top"><span class="card-company">Neon</span><span class="silent">9d</span></span>
+                  <span class="card-role">Backend Engineer, Control Plane</span>
+                  <span class="card-meta">
+                    <span class="status"><span class="dot wishlist"></span>Wishlist</span>
+                    <span>9 days ago</span>
+                  </span>
+                </a></li>
+                <li><a class="card-row" href="#">
+                  <span class="card-top"><span class="card-company">Supabase</span><span class="silent">15d</span></span>
+                  <span class="card-role">Platform Engineer</span>
+                  <span class="card-meta">
+                    <span class="status"><span class="dot applied"></span>Applied</span>
+                    <span>15 days ago</span>
+                  </span>
+                </a></li>
+                <li><a class="card-row" href="#">
+                  <span class="card-top"><span class="card-company">Vercel</span><span class="silent urgent">24d</span></span>
+                  <span class="card-role">Senior Backend Engineer</span>
+                  <span class="card-meta">
+                    <span class="status"><span class="dot interviewing"></span>Interviewing</span>
+                    <span>24 days ago</span>
+                  </span>
+                </a></li>
+                <li><a class="card-row" href="#">
+                  <span class="card-top"><span class="card-company">Figma</span></span>
+                  <span class="card-role">Backend Engineer, Infrastructure</span>
+                  <span class="card-meta">
+                    <span class="status"><span class="dot rejected"></span>Rejected</span>
+                    <span>28 days ago</span>
+                  </span>
+                </a></li>
+              </ul>
+            </div>
+          </section>
+        </div>
+
+        <!-- ===== Right rail (desktop) / stacked below (mobile) ===== -->
+        <aside>
+          <section aria-labelledby="week-h">
+            <div class="section-head">
+              <h2 id="week-h">Next 7 days</h2>
+              <span class="count">2</span>
+            </div>
+            <div class="panel">
+              <ul class="week">
+                <li>
+                  <a class="week-row" href="#">
+                    <span class="when">
+                      <span class="day today-flag">Today</span>
+                      <span class="date">16</span>
+                      <span class="time">15:00</span>
+                    </span>
+                    <span class="week-main">
+                      <span class="week-stage">System design round</span>
+                      <span class="week-sub">Stripe · Software Engineer, Payments</span>
+                    </span>
+                  </a>
+                </li>
+                <li>
+                  <a class="week-row" href="#">
+                    <span class="when">
+                      <span class="day">Thu</span>
+                      <span class="date">19</span>
+                      <span class="time">10:30</span>
+                    </span>
+                    <span class="week-main">
+                      <span class="week-stage">Hiring manager call</span>
+                      <span class="week-sub">Linear · Fullstack Engineer</span>
+                    </span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </section>
+
+          <section aria-labelledby="check-h">
+            <div class="section-head">
+              <h2 id="check-h">Automation</h2>
+            </div>
+            <div class="panel" style="padding: var(--space-4); font-size: 13px; color: var(--text-muted);">
+              <div>Daily check ran <strong style="color: var(--text); font-weight: 500;">today at 06:00</strong> · 3 flagged</div>
+              <div style="margin-top: var(--space-2);">Weekly digest sent <strong style="color: var(--text); font-weight: 500;">today at 08:00</strong></div>
+              <div style="margin-top: var(--space-3);">
+                <a href="#" style="color: var(--accent); text-decoration: none; font-weight: 500;">Preview digest →</a>
+              </div>
+            </div>
+          </section>
+        </aside>
+
+      </div>
+    </main>
+  </div>
+
+  <nav class="bottomnav" aria-label="Main">
+    <a href="#" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+      Home</a>
+    <a href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 13h8M8 17h5"/></svg>
+      Applications</a>
+    <a href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 21V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16M14 10h5a1 1 0 0 1 1 1v10M3 21h18"/></svg>
+      Companies</a>
+    <a href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
+      Contacts</a>
+    <a href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>
+      Settings</a>
+  </nav>
+</div>
+
+<script>
+  // Prototype-only: filter chips are single-select
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', 'false'));
+      chip.setAttribute('aria-pressed', 'true');
+    });
+  });
+</script>
+</body>
+</html>
