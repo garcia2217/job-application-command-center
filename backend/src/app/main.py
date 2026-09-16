@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from app.config import Settings, get_settings
 from app.database import Base, build_engine, build_sessionmaker
+from app.error_handlers import register_exception_handlers
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -24,6 +25,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(
         title=settings.app_name, version=settings.app_version, lifespan=lifespan
     )
+    register_exception_handlers(app)
 
     @app.get("/health")
     async def health() -> dict[str, str]:

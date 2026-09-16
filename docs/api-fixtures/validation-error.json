@@ -1,0 +1,15 @@
+{
+  "type": "https://example.com/errors/validation-failed",
+  "title": "Request validation failed",
+  "status": 422,
+  "detail": "1 field(s) failed validation",
+  "code": "VALIDATION_FAILED",
+  "errors": [
+    {
+      "location": "body",
+      "field": "role_title",
+      "message": "Field required",
+      "type": "missing"
+    }
+  ]
+}
