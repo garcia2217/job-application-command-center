@@ -12,6 +12,14 @@ from app.errors import AppError, ErrorCode
 logger = logging.getLogger("app.errors")
 PROBLEM_TYPE_BASE = "https://example.com/errors/"
 
+# Raw HTTPExceptions (routing 404/405, third-party raises) get the closest
+# contract code; app code raises AppError subclasses instead.
+_HTTP_STATUS_CODES = {
+    401: ErrorCode.UNAUTHENTICATED,
+    404: ErrorCode.NOT_FOUND,
+    409: ErrorCode.CONFLICT,
+}
+
 
 def problem_response(
     *,
@@ -79,7 +87,10 @@ async def http_exception_handler(
         title = HTTPStatus(exc.status_code).phrase
     except ValueError:
         title = "HTTP error"
-    code = ErrorCode.NOT_FOUND if exc.status_code == 404 else ErrorCode.INTERNAL_ERROR
+    if exc.status_code >= 500:
+        code = ErrorCode.INTERNAL_ERROR
+    else:
+        code = _HTTP_STATUS_CODES.get(exc.status_code, ErrorCode.HTTP_ERROR)
     return problem_response(
         status=exc.status_code,
         code=code,

@@ -10,6 +10,7 @@ class ErrorCode(StrEnum):
     NOT_FOUND = "NOT_FOUND"
     CONFLICT = "CONFLICT"
     COMPANY_NAME_TAKEN = "COMPANY_NAME_TAKEN"
+    HTTP_ERROR = "HTTP_ERROR"
     INTERNAL_ERROR = "INTERNAL_ERROR"
 
 
@@ -27,7 +28,7 @@ class AppError(Exception):
         code: ErrorCode | None = None,
         errors: list[dict[str, Any]] | None = None,
     ) -> None:
-        self.detail = detail
+        self.detail = detail if detail is not None else self.title
         if code is not None:
             self.code = code
         self.errors = errors

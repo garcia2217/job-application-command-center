@@ -59,6 +59,7 @@ Initial set (grows as features land; keep this list current):
 | `NOT_FOUND` | 404 | Record absent — or owned by another account (AC-01.7) |
 | `CONFLICT` | 409 | Generic state conflict |
 | `COMPANY_NAME_TAKEN` | 409 | Company name exists case-insensitively (AC-02.4) |
+| `HTTP_ERROR` | 4xx | HTTP-level error outside the domain codes (e.g. 405 from routing) |
 | `INTERNAL_ERROR` | 500 | Unexpected failure; generic body only |
 
 ## Wire values
