@@ -1,8 +1,32 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
-app = FastAPI(title="Job Application Command Center API")
+from app.config import Settings, get_settings
+from app.database import Base, build_engine, build_sessionmaker
 
 
-@app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+def create_app(settings: Settings | None = None) -> FastAPI:
+    settings = settings or get_settings()
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        engine = build_engine(settings.database_url)
+        app.state.engine = engine
+        app.state.sessionmaker = build_sessionmaker(engine)
+        if settings.auto_create_tables:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+        yield
+        await engine.dispose()
+
+    app = FastAPI(
+        title=settings.app_name, version=settings.app_version, lifespan=lifespan
+    )
+
+    @app.get("/health")
+    async def health() -> dict[str, str]:
+        return {"status": "ok"}
+
+    return app
