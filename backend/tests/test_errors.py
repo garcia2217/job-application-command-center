@@ -73,3 +73,47 @@ async def test_unhandled_error_is_generic_500(app) -> None:
     assert response.status_code == 500
     assert response.json()["code"] == "INTERNAL_ERROR"
     assert "secret internals" not in response.text
+
+
+async def test_app_error_extra_members_are_merged(app) -> None:
+    from app.errors import ConflictError, ErrorCode
+
+    @app.get("/probe-extra")
+    async def probe_extra() -> dict[str, str]:  # pragma: no cover
+        raise ConflictError(
+            "Exists", code=ErrorCode.COMPANY_NAME_TAKEN, extra={"existing_id": 42}
+        )
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        response = await ac.get("/probe-extra")
+    assert response.status_code == 409
+    body = response.json()
+    assert body["code"] == "COMPANY_NAME_TAKEN"
+    assert body["existing_id"] == 42
+    assert "errors" not in body
+
+
+async def test_field_error_helper_shape(app) -> None:
+    from app.errors import field_error
+
+    @app.get("/probe-field")
+    async def probe_field() -> dict[str, str]:  # pragma: no cover
+        raise field_error("salary_max", "Must be greater than or equal to salary_min")
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        response = await ac.get("/probe-field")
+    assert response.status_code == 422
+    body = response.json()
+    assert body["code"] == "VALIDATION_FAILED"
+    assert body["errors"] == [
+        {
+            "location": "body",
+            "field": "salary_max",
+            "message": "Must be greater than or equal to salary_min",
+            "type": "value_error",
+        }
+    ]

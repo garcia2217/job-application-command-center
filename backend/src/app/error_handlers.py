@@ -28,6 +28,7 @@ def problem_response(
     title: str,
     detail: str | None = None,
     errors: list[dict[str, Any]] | None = None,
+    extra: dict[str, Any] | None = None,
 ) -> JSONResponse:
     body: dict[str, Any] = {
         "type": f"{PROBLEM_TYPE_BASE}{str(code).lower().replace('_', '-')}",
@@ -38,6 +39,9 @@ def problem_response(
     }
     if errors:
         body["errors"] = errors
+    if extra:
+        reserved = body.keys() | {"instance", "request_id"}
+        body.update({k: v for k, v in extra.items() if k not in reserved})
     return JSONResponse(
         status_code=status, content=body, media_type="application/problem+json"
     )
@@ -53,6 +57,7 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
         title=exc.title,
         detail=exc.detail,
         errors=exc.errors,
+        extra=exc.extra,
     )
 
 

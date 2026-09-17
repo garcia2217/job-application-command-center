@@ -26,7 +26,12 @@ class Company(Base):
         DateTime(timezone=True), server_default=func.now()
     )
 
-    applications: Mapped[list["Application"]] = relationship(back_populates="company")  # noqa: F821, UP037
+    applications: Mapped[list["Application"]] = relationship(  # noqa: F821, UP037
+        back_populates="company", order_by="desc(Application.last_activity_at)"
+    )
     contacts: Mapped[list["Contact"]] = relationship(  # noqa: F821, UP037
-        back_populates="company", cascade="all, delete-orphan"
+        back_populates="company",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="Contact.name",
     )

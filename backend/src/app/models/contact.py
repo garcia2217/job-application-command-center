@@ -28,5 +28,7 @@ class Contact(Base):
 
     company: Mapped["Company"] = relationship(back_populates="contacts")  # noqa: F821, UP037
     applications: Mapped[list["Application"]] = relationship(  # noqa: F821, UP037
-        secondary=application_contacts, back_populates="contacts"
+        secondary=application_contacts,
+        back_populates="contacts",
+        passive_deletes=True,
     )

@@ -82,11 +82,18 @@ class Application(Base):
     stages: Mapped[list["InterviewStage"]] = relationship(  # noqa: F821, UP037
         back_populates="application",
         cascade="all, delete-orphan",
+        passive_deletes=True,
         order_by="InterviewStage.position",
     )
     contacts: Mapped[list["Contact"]] = relationship(  # noqa: F821, UP037
-        secondary=application_contacts, back_populates="applications"
+        secondary=application_contacts,
+        back_populates="applications",
+        passive_deletes=True,
+        order_by="Contact.name",
     )
     comparison: Mapped["Comparison | None"] = relationship(  # noqa: F821, UP037
-        back_populates="application", cascade="all, delete-orphan", uselist=False
+        back_populates="application",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        uselist=False,
     )
