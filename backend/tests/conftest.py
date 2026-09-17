@@ -13,7 +13,10 @@ from sqlalchemy.pool import StaticPool
 import app.models
 from app.config import get_settings
 from app.database import Base
+from app.dependencies import get_db
 from app.main import create_app
+from app.models import Account
+from app.security import hash_password
 
 
 @pytest.fixture(autouse=True)
@@ -44,7 +47,13 @@ async def db_session(engine) -> AsyncIterator[AsyncSession]:
 
 @pytest.fixture
 def app(db_session: AsyncSession) -> FastAPI:
-    return create_app()
+    application = create_app()
+
+    async def _get_db_override():
+        yield db_session
+
+    application.dependency_overrides[get_db] = _get_db_override
+    return application
 
 
 @pytest.fixture
@@ -53,3 +62,16 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
         yield ac
+
+
+@pytest.fixture
+async def owner_account(db_session: AsyncSession) -> Account:
+    account = Account(
+        email="owner@example.com",
+        hashed_password=await hash_password("owner-password-1"),
+        is_demo=False,
+    )
+    db_session.add(account)
+    await db_session.commit()
+    await db_session.refresh(account)
+    return account
