@@ -1,12 +1,16 @@
+from datetime import timedelta
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.clock import utcnow
 from app.demo_data import reset_demo_data
 from app.models import (
-    ACTIVE_STATUSES,
     Account,
     Application,
+    ApplicationStatus,
     Company,
+    Comparison,
     Contact,
     InterviewStage,
     application_contacts,
@@ -29,7 +33,7 @@ async def test_reset_is_idempotent_and_scoped(
     second = await reset_demo_data(db_session, other_account)
     await db_session.commit()
     assert first == second
-    assert first["companies"] >= 4 and first["applications"] >= 6
+    assert first["companies"] >= 4 and first["applications"] >= 8
 
     demo_apps = (
         (
@@ -42,13 +46,24 @@ async def test_reset_is_idempotent_and_scoped(
     )
     assert len(demo_apps) == first["applications"]
     statuses = {a.status for a in demo_apps}
-    assert ACTIVE_STATUSES <= statuses  # covers wishlist/applied/interviewing at least
+    assert statuses == set(ApplicationStatus)  # all six statuses present
     assert any(a.last_activity_at is not None for a in demo_apps)
+    assert sum(a.is_quiet for a in demo_apps) >= 2
     assert await _count(db_session, InterviewStage.id) == first["stages"]
     assert await _count(db_session, Contact.id) == first["contacts"]
     assert (
         await db_session.execute(select(func.count()).select_from(application_contacts))
     ).scalar_one() == first["links"]
+    assert await _count(db_session, Comparison.id) == first["comparisons"]
+
+    now = utcnow().replace(tzinfo=None)
+    soon = now + timedelta(days=7)
+    stage_times = (
+        (await db_session.execute(select(InterviewStage.scheduled_at))).scalars().all()
+    )
+    assert any(
+        t is not None and now <= t.replace(tzinfo=None) <= soon for t in stage_times
+    )
 
     # Owner data untouched.
     owner_apps = await db_session.execute(

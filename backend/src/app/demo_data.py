@@ -15,6 +15,7 @@ from app.models import (
     Application,
     ApplicationStatus,
     Company,
+    Comparison,
     Contact,
     InterviewStage,
     StageOutcome,
@@ -25,8 +26,9 @@ from app.services.company_service import normalize_company_name
 
 
 async def _clear(session: AsyncSession, account_id: int) -> None:
-    # Applications first (stages/comparison/links cascade), then companies
-    # (contacts cascade). Application.company_id has no ON DELETE, so order matters.
+    # Applications first (stages/comparison row/contact links cascade via
+    # ON DELETE CASCADE), then companies (contacts cascade). Application.company_id
+    # has no ON DELETE, so order matters.
     await session.execute(
         delete(Application).where(Application.account_id == account_id)
     )
@@ -107,6 +109,7 @@ async def reset_demo_data(session: AsyncSession, account: Account) -> dict[str, 
             applied_days_ago=9,
             work_arrangement=WorkArrangement.REMOTE,
             source="Referral",
+            is_quiet=True,
             job_description=(
                 "Platform Engineer to build internal tooling in Go and Python on "
                 "Kubernetes. Terraform, AWS, and observability (Prometheus, Grafana) "
@@ -137,6 +140,7 @@ async def reset_demo_data(session: AsyncSession, account: Account) -> dict[str, 
             days_quiet=12,
             applied_days_ago=None,
             notes="Reach out to Dana before applying.",
+            is_quiet=True,
         ),
         app(
             acme,
@@ -162,6 +166,21 @@ async def reset_demo_data(session: AsyncSession, account: Account) -> dict[str, 
             ApplicationStatus.WITHDRAWN,
             days_quiet=20,
             applied_days_ago=25,
+        ),
+        app(
+            orbit,
+            "Backend Developer",
+            ApplicationStatus.APPLIED,
+            days_quiet=4,
+            applied_days_ago=4,
+            location="Remote",
+            work_arrangement=WorkArrangement.REMOTE,
+            source="Company site",
+            job_description=(
+                "Backend Developer for a healthcare platform: Python, Django or "
+                "FastAPI, PostgreSQL, HIPAA-aware data handling, unit testing with "
+                "pytest, and CI/CD pipelines."
+            ),
         ),
     ]
     session.add_all(applications)
@@ -211,6 +230,22 @@ async def reset_demo_data(session: AsyncSession, account: Account) -> dict[str, 
     ]
     session.add_all(stages)
 
+    comparison = Comparison(
+        application_id=backend_acme.id,
+        matched_terms=[
+            "python",
+            "fastapi",
+            "postgresql",
+            "rest api",
+            "docker",
+            "background jobs",
+        ],
+        missing_terms=["kubernetes", "redis", "ci/cd"],
+        match_percentage=67,
+        ran_at=now - timedelta(days=1),
+    )
+    session.add(comparison)
+
     contacts = [
         Contact(
             account_id=account.id,
@@ -259,4 +294,5 @@ async def reset_demo_data(session: AsyncSession, account: Account) -> dict[str, 
         "stages": len(stages),
         "contacts": len(contacts),
         "links": len(links),
+        "comparisons": 1,
     }
