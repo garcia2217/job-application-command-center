@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from app.config import Settings, get_settings
 from app.database import Base, build_engine, build_sessionmaker
 from app.error_handlers import register_exception_handlers
+from app.routers import auth
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -26,6 +27,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         title=settings.app_name, version=settings.app_version, lifespan=lifespan
     )
     register_exception_handlers(app)
+    app.include_router(auth.router)
 
     @app.get("/health")
     async def health() -> dict[str, str]:
