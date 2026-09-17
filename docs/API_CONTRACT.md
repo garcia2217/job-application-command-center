@@ -59,8 +59,18 @@ Initial set (grows as features land; keep this list current):
 | `NOT_FOUND` | 404 | Record absent — or owned by another account (AC-01.7) |
 | `CONFLICT` | 409 | Generic state conflict |
 | `COMPANY_NAME_TAKEN` | 409 | Company name exists case-insensitively (AC-02.4) |
+| `COMPANY_HAS_APPLICATIONS` | 409 | Company deletion refused while it has applications (AC-02.6) |
+| `DUPLICATE_APPLICATION` | 409 | Same company + role title exists; resend with `confirm_duplicate: true` to save anyway (AC-02.5) |
+| `CONTACT_COMPANY_MISMATCH` | 409 | Contact and application belong to different companies (AC-03.2) |
 | `HTTP_ERROR` | 4xx | HTTP-level error outside the domain codes (e.g. 405 from routing) |
 | `INTERNAL_ERROR` | 500 | Unexpected failure; generic body only |
+
+### Extension members
+
+`COMPANY_NAME_TAKEN` and `DUPLICATE_APPLICATION` responses carry `existing_id`
+(integer id of the existing company / application) as an RFC 9457 extension
+member, so the client can offer the existing record. No other extension members
+exist in the MVP.
 
 ## Wire values
 
@@ -71,6 +81,13 @@ Initial set (grows as features land; keep this list current):
   "On-site") is a frontend concern.
 - Timestamps are ISO 8601 in UTC; the frontend renders them in the account's
   time zone (NFR-08).
+- Naive datetimes sent for `scheduled_at` are interpreted in the account's time
+  zone; aware datetimes are converted. Responses are always UTC.
+- `GET /applications` accepts `status=<enum>`, `sort=last_activity|date_applied`
+  (default `last_activity`) and `order=asc|desc` (default `desc`); nulls sort
+  last. There is no pagination in the MVP.
+- Deleting an application or company needs a confirmation step in the UI; the
+  API deletes on the first call.
 
 ## Frontend types
 
