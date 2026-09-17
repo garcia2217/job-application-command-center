@@ -1,6 +1,10 @@
 from enum import StrEnum
 
 
+def enum_values(e: type[StrEnum]) -> list[str]:
+    return [m.value for m in e]
+
+
 class ApplicationStatus(StrEnum):
     WISHLIST = "wishlist"
     APPLIED = "applied"

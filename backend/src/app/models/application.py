@@ -14,7 +14,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-from app.models.enums import ApplicationStatus, WorkArrangement
+from app.models.enums import ApplicationStatus, WorkArrangement, enum_values
 
 application_contacts = Table(
     "application_contacts",
@@ -41,13 +41,21 @@ class Application(Base):
 
     role_title: Mapped[str] = mapped_column(String(200))
     status: Mapped[ApplicationStatus] = mapped_column(
-        Enum(ApplicationStatus, native_enum=False, length=20),
+        Enum(
+            ApplicationStatus,
+            native_enum=False,
+            length=20,
+            values_callable=enum_values,
+        ),
         default=ApplicationStatus.APPLIED,
     )
     posting_url: Mapped[str | None] = mapped_column(String(2000), default=None)
     location: Mapped[str | None] = mapped_column(String(200), default=None)
     work_arrangement: Mapped[WorkArrangement | None] = mapped_column(
-        Enum(WorkArrangement, native_enum=False, length=10), default=None
+        Enum(
+            WorkArrangement, native_enum=False, length=10, values_callable=enum_values
+        ),
+        default=None,
     )
     salary_min: Mapped[int | None] = mapped_column(default=None)
     salary_max: Mapped[int | None] = mapped_column(default=None)

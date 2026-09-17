@@ -1,6 +1,9 @@
 from httpx import AsyncClient
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Account
+from app.models import Session as SessionModel
 
 
 async def test_login_success_returns_token_and_expiry(
@@ -17,7 +20,7 @@ async def test_login_success_returns_token_and_expiry(
 
 
 async def test_wrong_password_generic_error(
-    client: AsyncClient, owner_account: Account
+    client: AsyncClient, owner_account: Account, db_session: AsyncSession
 ) -> None:  # AC-01.2
     response = await client.post(
         "/auth/login", json={"email": "owner@example.com", "password": "wrong"}
@@ -27,6 +30,8 @@ async def test_wrong_password_generic_error(
     assert body["code"] == "INVALID_CREDENTIALS"
     assert body["detail"] == "Email or password is incorrect"
     assert "www-authenticate" not in response.headers
+    count = (await db_session.execute(select(func.count(SessionModel.id)))).scalar_one()
+    assert count == 0
 
 
 async def test_empty_fields_are_validation_not_attempt(

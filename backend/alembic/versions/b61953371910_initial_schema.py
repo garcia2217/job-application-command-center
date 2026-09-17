@@ -1,8 +1,8 @@
 """initial schema
 
-Revision ID: 9c609e0c7175
+Revision ID: b61953371910
 Revises:
-Create Date: 2026-09-16 21:27:46.721265
+Create Date: 2026-09-17 10:53:35.483708
 
 """
 
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "9c609e0c7175"
+revision: str = "b61953371910"
 down_revision: str | Sequence[str] | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -43,7 +43,7 @@ def upgrade() -> None:
             server_default=sa.text("(CURRENT_TIMESTAMP)"),
             nullable=False,
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_accounts")),
     )
     op.create_index(op.f("ix_accounts_email"), "accounts", ["email"], unique=True)
     op.create_table(
@@ -60,8 +60,13 @@ def upgrade() -> None:
             server_default=sa.text("(CURRENT_TIMESTAMP)"),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(["account_id"], ["accounts.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("id"),
+        sa.ForeignKeyConstraint(
+            ["account_id"],
+            ["accounts.id"],
+            name=op.f("fk_companies_account_id_accounts"),
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_companies")),
         sa.UniqueConstraint("account_id", "name_normalized", name="uq_company_name"),
     )
     op.create_index(
@@ -73,7 +78,7 @@ def upgrade() -> None:
         sa.Column(
             "job_type",
             sa.Enum(
-                "QUIET_CHECK", "DIGEST", name="jobtype", native_enum=False, length=20
+                "quiet_check", "digest", name="jobtype", native_enum=False, length=20
             ),
             nullable=False,
         ),
@@ -82,10 +87,10 @@ def upgrade() -> None:
         sa.Column(
             "status",
             sa.Enum(
-                "SUCCEEDED",
-                "SKIPPED",
-                "NOT_SENT",
-                "FAILED",
+                "succeeded",
+                "skipped",
+                "not_sent",
+                "failed",
                 name="jobstatus",
                 native_enum=False,
                 length=10,
@@ -93,8 +98,13 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("detail", sa.String(length=500), nullable=True),
-        sa.ForeignKeyConstraint(["account_id"], ["accounts.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("id"),
+        sa.ForeignKeyConstraint(
+            ["account_id"],
+            ["accounts.id"],
+            name=op.f("fk_job_runs_account_id_accounts"),
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_job_runs")),
     )
     op.create_index(
         op.f("ix_job_runs_account_id"), "job_runs", ["account_id"], unique=False
@@ -112,8 +122,13 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["account_id"], ["accounts.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("id"),
+        sa.ForeignKeyConstraint(
+            ["account_id"],
+            ["accounts.id"],
+            name=op.f("fk_sessions_account_id_accounts"),
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_sessions")),
     )
     op.create_index(
         op.f("ix_sessions_account_id"), "sessions", ["account_id"], unique=False
@@ -130,12 +145,12 @@ def upgrade() -> None:
         sa.Column(
             "status",
             sa.Enum(
-                "WISHLIST",
-                "APPLIED",
-                "INTERVIEWING",
-                "OFFER",
-                "REJECTED",
-                "WITHDRAWN",
+                "wishlist",
+                "applied",
+                "interviewing",
+                "offer",
+                "rejected",
+                "withdrawn",
                 name="applicationstatus",
                 native_enum=False,
                 length=20,
@@ -147,9 +162,9 @@ def upgrade() -> None:
         sa.Column(
             "work_arrangement",
             sa.Enum(
-                "ON_SITE",
-                "HYBRID",
-                "REMOTE",
+                "on_site",
+                "hybrid",
+                "remote",
                 name="workarrangement",
                 native_enum=False,
                 length=10,
@@ -174,12 +189,18 @@ def upgrade() -> None:
             server_default=sa.text("(CURRENT_TIMESTAMP)"),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(["account_id"], ["accounts.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["account_id"],
+            ["accounts.id"],
+            name=op.f("fk_applications_account_id_accounts"),
+            ondelete="CASCADE",
+        ),
         sa.ForeignKeyConstraint(
             ["company_id"],
             ["companies.id"],
+            name=op.f("fk_applications_company_id_companies"),
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_applications")),
     )
     op.create_index(
         op.f("ix_applications_account_id"), "applications", ["account_id"], unique=False
@@ -209,9 +230,19 @@ def upgrade() -> None:
             server_default=sa.text("(CURRENT_TIMESTAMP)"),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(["account_id"], ["accounts.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["company_id"], ["companies.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("id"),
+        sa.ForeignKeyConstraint(
+            ["account_id"],
+            ["accounts.id"],
+            name=op.f("fk_contacts_account_id_accounts"),
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["company_id"],
+            ["companies.id"],
+            name=op.f("fk_contacts_company_id_companies"),
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_contacts")),
     )
     op.create_index(
         op.f("ix_contacts_account_id"), "contacts", ["account_id"], unique=False
@@ -224,10 +255,20 @@ def upgrade() -> None:
         sa.Column("application_id", sa.Integer(), nullable=False),
         sa.Column("contact_id", sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(
-            ["application_id"], ["applications.id"], ondelete="CASCADE"
+            ["application_id"],
+            ["applications.id"],
+            name=op.f("fk_application_contacts_application_id_applications"),
+            ondelete="CASCADE",
         ),
-        sa.ForeignKeyConstraint(["contact_id"], ["contacts.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("application_id", "contact_id"),
+        sa.ForeignKeyConstraint(
+            ["contact_id"],
+            ["contacts.id"],
+            name=op.f("fk_application_contacts_contact_id_contacts"),
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint(
+            "application_id", "contact_id", name=op.f("pk_application_contacts")
+        ),
     )
     op.create_table(
         "comparisons",
@@ -238,10 +279,15 @@ def upgrade() -> None:
         sa.Column("match_percentage", sa.Integer(), nullable=True),
         sa.Column("ran_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(
-            ["application_id"], ["applications.id"], ondelete="CASCADE"
+            ["application_id"],
+            ["applications.id"],
+            name=op.f("fk_comparisons_application_id_applications"),
+            ondelete="CASCADE",
         ),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("application_id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_comparisons")),
+        sa.UniqueConstraint(
+            "application_id", name=op.f("uq_comparisons_application_id")
+        ),
     )
     op.create_table(
         "interview_stages",
@@ -252,9 +298,9 @@ def upgrade() -> None:
         sa.Column(
             "outcome",
             sa.Enum(
-                "PENDING",
-                "PASSED",
-                "FAILED",
+                "pending",
+                "passed",
+                "failed",
                 name="stageoutcome",
                 native_enum=False,
                 length=10,
@@ -270,9 +316,12 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.ForeignKeyConstraint(
-            ["application_id"], ["applications.id"], ondelete="CASCADE"
+            ["application_id"],
+            ["applications.id"],
+            name=op.f("fk_interview_stages_application_id_applications"),
+            ondelete="CASCADE",
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_interview_stages")),
     )
     op.create_index(
         op.f("ix_interview_stages_application_id"),

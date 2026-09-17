@@ -4,7 +4,7 @@ from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-from app.models.enums import StageOutcome
+from app.models.enums import StageOutcome, enum_values
 
 
 class InterviewStage(Base):
@@ -19,7 +19,8 @@ class InterviewStage(Base):
         DateTime(timezone=True), default=None, index=True
     )
     outcome: Mapped[StageOutcome] = mapped_column(
-        Enum(StageOutcome, native_enum=False, length=10), default=StageOutcome.PENDING
+        Enum(StageOutcome, native_enum=False, length=10, values_callable=enum_values),
+        default=StageOutcome.PENDING,
     )
     notes: Mapped[str | None] = mapped_column(Text, default=None)
     position: Mapped[int] = mapped_column(default=0)
