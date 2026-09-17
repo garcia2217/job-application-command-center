@@ -2,9 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from app.schemas.application import ApplicationSummary
 from app.schemas.common import HttpUrlStr, NonBlankStr, reject_null
-from app.schemas.contact import ContactResponse
 
 
 class CompanyCreate(BaseModel):
@@ -32,8 +30,3 @@ class CompanyResponse(CompanySummary):
     website: str | None
     notes: str | None
     created_at: datetime
-
-
-class CompanyDetailResponse(CompanyResponse):
-    applications: list[ApplicationSummary]
-    contacts: list[ContactResponse]

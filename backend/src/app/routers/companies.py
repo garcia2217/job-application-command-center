@@ -3,12 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Response, status
 
 from app.dependencies import CurrentAccountDep, DbDep
-from app.schemas.company import (
-    CompanyCreate,
-    CompanyDetailResponse,
-    CompanyResponse,
-    CompanyUpdate,
-)
+from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
+from app.schemas.company_detail import CompanyDetailResponse
 from app.services.company_service import CompanyService
 
 router = APIRouter(prefix="/companies", tags=["companies"])
