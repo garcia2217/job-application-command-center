@@ -10,6 +10,7 @@ from app.integrations.email import EmailSender
 from app.integrations.rate_limit import RateLimiter
 from app.models import Account
 from app.services.auth_service import AuthService
+from app.services.digest_service import DigestService
 
 
 async def get_db(request: Request) -> AsyncGenerator[AsyncSession]:
@@ -35,6 +36,15 @@ def get_rate_limiter(request: Request) -> RateLimiter:
 
 EmailSenderDep = Annotated[EmailSender, Depends(get_email_sender)]
 RateLimiterDep = Annotated[RateLimiter, Depends(get_rate_limiter)]
+
+
+def get_digest_service(
+    db: DbDep, settings: SettingsDep, sender: EmailSenderDep, limiter: RateLimiterDep
+) -> DigestService:
+    return DigestService(db, settings, sender, limiter)
+
+
+DigestServiceDep = Annotated[DigestService, Depends(get_digest_service)]
 
 
 def get_auth_service(db: DbDep, settings: SettingsDep) -> AuthService:
