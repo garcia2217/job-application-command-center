@@ -154,3 +154,40 @@ async def test_foreign_or_missing_application_is_404(
         f"/applications/{application.id}/stages/999"
     )
     assert missing_stage.status_code == 404
+
+
+@pytest.mark.parametrize("action", ["update", "move", "delete"])
+async def test_stage_edit_reorder_delete_record_activity(
+    owner_client: AsyncClient,
+    application: Application,
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+    action: str,
+) -> None:  # AC-04.4 — every stage change counts as activity
+    url = f"/applications/{application.id}/stages"
+    first = (await owner_client.post(url, json={"name": "Screen"})).json()
+    await owner_client.post(url, json={"name": "Onsite"})
+
+    # Re-quiet the application so the action under test must clear it again.
+    await db_session.refresh(application)
+    application.is_quiet = True
+    application.last_activity_at = utcnow() - timedelta(days=10)
+    await db_session.commit()
+
+    later = utcnow() + timedelta(hours=1)
+    monkeypatch.setattr(activity_module, "utcnow", lambda: later)
+    if action == "update":
+        response = await owner_client.patch(
+            f"{url}/{first['id']}", json={"name": "Phone screen"}
+        )
+    elif action == "move":
+        response = await owner_client.post(
+            f"{url}/{first['id']}/move", json={"direction": "down"}
+        )
+    else:
+        response = await owner_client.delete(f"{url}/{first['id']}")
+    assert response.status_code in (200, 204), response.text
+
+    detail = (await owner_client.get(f"/applications/{application.id}")).json()
+    assert detail["is_quiet"] is False
+    assert detail["last_activity_at"].startswith(later.isoformat()[:19])

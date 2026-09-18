@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from httpx import AsyncClient
@@ -14,6 +14,7 @@ from app.models import (
     InterviewStage,
 )
 from app.services import activity as activity_module
+from app.services import application_service as application_service_module
 from tests.conftest import make_application, make_company
 
 
@@ -345,3 +346,37 @@ async def test_foreign_application_is_404(
             method, f"/applications/{foreign.id}", **kwargs
         )
         assert response.status_code == 404, method
+
+
+async def test_future_date_uses_app_clock(
+    owner_client: AsyncClient,
+    db_session: AsyncSession,
+    owner_account: Account,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # 23:30 UTC on the 18th is already the 19th in Bangkok (UTC+7).
+    frozen = datetime(2026, 9, 18, 23, 30, tzinfo=UTC)
+    monkeypatch.setattr(application_service_module, "utcnow", lambda: frozen)
+    await owner_client.patch("/settings", json={"timezone": "Asia/Bangkok"})
+    company = await make_company(db_session, owner_account)
+
+    ok = await owner_client.post(
+        "/applications",
+        json={
+            "company_id": company.id,
+            "role_title": "Clock A",
+            "date_applied": "2026-09-19",
+        },
+    )
+    assert ok.status_code == 201, ok.text
+
+    future = await owner_client.post(
+        "/applications",
+        json={
+            "company_id": company.id,
+            "role_title": "Clock B",
+            "date_applied": "2026-09-20",
+        },
+    )
+    assert future.status_code == 422
+    assert future.json()["errors"][0]["field"] == "date_applied"

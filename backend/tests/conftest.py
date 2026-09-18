@@ -16,9 +16,11 @@ from app.clock import utcnow
 from app.config import get_settings
 from app.database import Base
 from app.dependencies import get_db
+from app.integrations.qstash import verify_qstash_signature
 from app.main import create_app
 from app.models import Account, Application, Company
 from app.security import hash_password
+from tests.fakes import FakeEmailSender, FakeRateLimiter
 
 
 @pytest.fixture(autouse=True)
@@ -54,14 +56,29 @@ async def db_session(engine) -> AsyncIterator[AsyncSession]:
 
 
 @pytest.fixture
-def app(db_session: AsyncSession) -> FastAPI:
+def app(engine) -> FastAPI:
     application = create_app()
+    request_sessions = async_sessionmaker(engine, expire_on_commit=False)
 
     async def _get_db_override():
-        yield db_session
+        async with request_sessions() as session:
+            yield session
 
     application.dependency_overrides[get_db] = _get_db_override
+    # ASGITransport never runs lifespan, so the adapters are set here directly.
+    application.state.email_sender = FakeEmailSender()
+    application.state.rate_limiter = FakeRateLimiter()
     return application
+
+
+@pytest.fixture
+def email_sender(app: FastAPI) -> FakeEmailSender:
+    return app.state.email_sender
+
+
+@pytest.fixture
+def rate_limiter(app: FastAPI) -> FakeRateLimiter:
+    return app.state.rate_limiter
 
 
 @pytest.fixture
@@ -70,6 +87,13 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
         yield ac
+
+
+@pytest.fixture
+async def jobs_client(app: FastAPI, client: AsyncClient) -> AsyncClient:
+    """A client whose /jobs calls pass signature verification (QStash stand-in)."""
+    app.dependency_overrides[verify_qstash_signature] = lambda: None
+    return client
 
 
 @pytest.fixture

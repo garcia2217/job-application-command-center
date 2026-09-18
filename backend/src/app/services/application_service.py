@@ -1,4 +1,3 @@
-from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, select
@@ -161,6 +160,6 @@ class ApplicationService:
                 "salary_max", "Must be greater than or equal to salary_min"
             )
         if application.date_applied is not None:
-            today = datetime.now(ZoneInfo(account.timezone)).date()
+            today = utcnow().astimezone(ZoneInfo(account.timezone)).date()
             if application.date_applied > today:
                 raise field_error("date_applied", "Cannot be in the future")

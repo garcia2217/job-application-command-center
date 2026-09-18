@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.errors import ConflictError, ErrorCode, NotFoundError
-from app.models import Application, Contact, application_contacts
+from app.models import Contact
 from app.schemas.contact import ContactCreate, ContactUpdate
 from app.services.application_service import ApplicationService
 from app.services.company_service import CompanyService
@@ -51,23 +51,8 @@ class ContactService:
 
     async def delete(self, account_id: int, contact_id: int) -> None:
         contact = await self.get(account_id, contact_id)
-        # expire_on_commit=False: applications already loaded in this session
-        # would keep a stale `contacts` collection unless invalidated below.
-        linked = (
-            (
-                await self.db.execute(
-                    select(Application)
-                    .join(application_contacts)
-                    .where(application_contacts.c.contact_id == contact.id)
-                )
-            )
-            .scalars()
-            .all()
-        )
         await self.db.delete(contact)  # application_contacts rows: ON DELETE CASCADE
         await self.db.commit()
-        for application in linked:
-            self.db.expire(application, ["contacts"])
 
     async def link(self, account_id: int, application_id: int, contact_id: int) -> None:
         application = await self.applications.get_detail(account_id, application_id)

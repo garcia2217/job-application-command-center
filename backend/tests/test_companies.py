@@ -147,7 +147,13 @@ async def test_delete_removes_company_and_contacts(
     await db_session.commit()
     response = await owner_client.delete(f"/companies/{company.id}")
     assert response.status_code == 204
-    assert (await db_session.get(Company, company.id)) is None
+    # `db_session.get` would return the pre-delete identity-map hit instead of
+    # querying (the delete happened on the request's own session); `select`
+    # always round-trips.
+    remaining = await db_session.execute(
+        select(Company).where(Company.id == company.id)
+    )
+    assert remaining.scalar_one_or_none() is None
     contacts = (await db_session.execute(select(func.count(Contact.id)))).scalar_one()
     assert contacts == 0
 

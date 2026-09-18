@@ -79,11 +79,17 @@ class StageService:
         index = stages.index(stage)
         target = index - 1 if direction == "up" else index + 1
         if 0 <= target < len(stages):
-            stages[index], stages[target] = stages[target], stages[index]
-            self._renumber(application)
+            # Swap `position` values in place rather than reordering the
+            # relationship-backed list: reassigning list items triggers
+            # remove/append events that (with cascade="all, delete-orphan")
+            # can orphan and delete a stage still meant to stay linked.
+            stages[index].position, stages[target].position = (
+                stages[target].position,
+                stages[index].position,
+            )
             record_activity(application)
             await self.db.commit()
-        return list(stages)
+        return sorted(application.stages, key=lambda s: s.position)
 
     @staticmethod
     def _find(application: Application, stage_id: int) -> InterviewStage:
