@@ -1,8 +1,16 @@
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 
+from app.clock import utcnow, whole_days_between
 from app.models.enums import ApplicationStatus, WorkArrangement
 from app.schemas.common import (
     CurrencyCode,
@@ -33,6 +41,11 @@ class ApplicationSummary(BaseModel):
     date_applied: date | None
     last_activity_at: datetime
     is_quiet: bool
+
+    @computed_field
+    @property
+    def days_since_activity(self) -> int:
+        return whole_days_between(self.last_activity_at, utcnow())
 
 
 class ApplicationResponse(ApplicationSummary):

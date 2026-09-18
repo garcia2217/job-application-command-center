@@ -32,9 +32,13 @@ class ApplicationService:
         account_id: int,
         *,
         status: ApplicationStatus | None = None,
+        quiet: bool | None = None,
         sort: ApplicationSort = "last_activity",
-        order: SortOrder = "desc",
+        order: SortOrder | None = None,
     ) -> list[Application]:
+        # Needs follow-up (quiet=true) defaults to oldest activity first (PRD F-04).
+        if order is None:
+            order = "asc" if quiet else "desc"
         column = _SORT_COLUMNS[sort]
         primary = column.asc() if order == "asc" else column.desc()
         query = (
@@ -45,6 +49,8 @@ class ApplicationService:
         )
         if status is not None:
             query = query.where(Application.status == status)
+        if quiet is not None:
+            query = query.where(Application.is_quiet.is_(quiet))
         result = await self.db.execute(query)
         return list(result.scalars())
 

@@ -29,10 +29,13 @@ async def list_applications(
     account: CurrentAccountDep,
     service: ApplicationServiceDep,
     status_filter: Annotated[ApplicationStatus | None, Query(alias="status")] = None,
+    quiet: bool | None = None,
     sort: ApplicationSort = "last_activity",
-    order: SortOrder = "desc",
+    order: SortOrder | None = None,
 ):
-    return await service.list(account.id, status=status_filter, sort=sort, order=order)
+    return await service.list(
+        account.id, status=status_filter, quiet=quiet, sort=sort, order=order
+    )
 
 
 @router.post(

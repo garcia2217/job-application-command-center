@@ -380,3 +380,39 @@ async def test_future_date_uses_app_clock(
     )
     assert future.status_code == 422
     assert future.json()["errors"][0]["field"] == "date_applied"
+
+
+async def test_quiet_filter_oldest_first_with_days(
+    owner_client: AsyncClient, db_session: AsyncSession, owner_account: Account
+) -> None:  # F-04 Needs follow-up list
+    company = await make_company(db_session, owner_account)
+    newer = await make_application(
+        db_session,
+        owner_account,
+        company,
+        role_title="Newer",
+        last_activity_at=utcnow() - timedelta(days=8),
+        is_quiet=True,
+    )
+    older = await make_application(
+        db_session,
+        owner_account,
+        company,
+        role_title="Older",
+        last_activity_at=utcnow() - timedelta(days=12),
+        is_quiet=True,
+    )
+    await make_application(
+        db_session, owner_account, company, role_title="Fresh", is_quiet=False
+    )
+
+    response = await owner_client.get("/applications?quiet=true")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [a["id"] for a in body] == [older.id, newer.id]
+    assert [a["days_since_activity"] for a in body] == [12, 8]
+
+    everything = (await owner_client.get("/applications")).json()
+    assert len(everything) == 3
+    assert everything[0]["days_since_activity"] == 0

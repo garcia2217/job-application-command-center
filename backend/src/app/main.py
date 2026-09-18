@@ -7,7 +7,7 @@ from app.config import Settings, get_settings
 from app.database import Base, build_engine, build_sessionmaker
 from app.error_handlers import register_exception_handlers
 from app.integrations import build_email_sender, build_rate_limiter
-from app.routers import applications, auth, companies, contacts, stages
+from app.routers import applications, auth, companies, contacts, jobs, stages
 from app.routers import settings as settings_router
 
 
@@ -38,6 +38,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(stages.router)
     app.include_router(contacts.router)
     app.include_router(contacts.links_router)
+    app.include_router(jobs.router)
 
     @app.get("/health")
     async def health() -> dict[str, str]:
