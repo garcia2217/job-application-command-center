@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 
 from sqlalchemy import and_, not_, select, update
@@ -5,6 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clock import utcnow
 from app.models import ACTIVE_STATUSES, Account, Application, JobRun, JobStatus, JobType
+
+logger = logging.getLogger(__name__)
 
 
 class QuietCheckService:
@@ -26,15 +29,16 @@ class QuietCheckService:
             )
             self.db.add(run)
             await self.db.commit()
-        except Exception as exc:  # noqa: BLE001 -- job routes must record any failure, not raise
+        except Exception as exc:  # job routes must record any failure, not raise
             # AC-04.7: previous flags survive; the failure itself is recorded.
             await self.db.rollback()
+            logger.exception("quiet-check run failed")
             run = JobRun(
                 job_type=JobType.QUIET_CHECK,
                 account_id=None,
                 ran_at=now,
                 status=JobStatus.FAILED,
-                detail=f"{type(exc).__name__}: {exc}"[:500],
+                detail=f"Failed: {type(exc).__name__}"[:500],
             )
             self.db.add(run)
             await self.db.commit()
@@ -60,7 +64,11 @@ class QuietCheckService:
             flagged += result.rowcount
             await self.db.execute(
                 update(Application)
-                .where(Application.account_id == account.id, not_(is_quiet_now))
+                .where(
+                    Application.account_id == account.id,
+                    Application.is_quiet.is_(True),
+                    not_(is_quiet_now),
+                )
                 .values(is_quiet=False)
                 .execution_options(synchronize_session="fetch")
             )

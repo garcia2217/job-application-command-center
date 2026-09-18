@@ -28,7 +28,7 @@ See `docs/PRD.md` for full product scope and acceptance criteria.
 | Database              | Neon Postgres                                                                       |
 | Cache / rate limiting | Upstash Redis                                                                       |
 | Background jobs       | Upstash QStash                                                                      |
-| Email                 | Resend or SendGrid                                                                  |
+| Email                 | Resend                                                                              |
 | Hosting               | Frontend on Vercel/Netlify, API on Render (free tier spins down after ~15 min idle) |
 
 ## Getting Started
@@ -70,6 +70,7 @@ bun run build
 - **Weekly digest** (`POST /jobs/digest`, QStash cron hourly) emails each account on Monday 08:00 in its own time zone via Resend, at most once per Monday and at most 5 emails per UTC day system-wide (Upstash Redis counter). The demo account never sends; both accounts can preview the digest. QStash retries are disabled for this schedule — the hourly cron is its own retry.
 - Both routes are authenticated by QStash request signatures, not sessions, and are idempotent, so a late trigger (the free API host sleeps) still does the right thing.
 - Register the schedules once with `uv run python scripts/register_schedules.py` after deploying.
+- Not yet verified live: the scheduler, Redis limiter and email send are covered by tests with doubles; each needs one real end-to-end run before it counts as done (NFR-06).
 
 ## Repository Layout
 

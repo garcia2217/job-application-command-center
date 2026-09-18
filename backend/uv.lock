@@ -155,7 +155,7 @@ dependencies = [
     { name = "pydantic", extra = ["email"] },
     { name = "pydantic-settings" },
     { name = "qstash" },
-    { name = "resend" },
+    { name = "resend", extra = ["async"] },
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "tzdata" },
     { name = "upstash-redis" },
@@ -179,7 +179,7 @@ requires-dist = [
     { name = "pydantic", extras = ["email"], specifier = ">=2.13.5" },
     { name = "pydantic-settings", specifier = ">=2.15.0" },
     { name = "qstash", specifier = ">=3.4.0" },
-    { name = "resend", specifier = ">=2.46.0" },
+    { name = "resend", extras = ["async"], specifier = ">=2.46.0" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.54" },
     { name = "tzdata", specifier = ">=2026.4" },
     { name = "upstash-redis", specifier = ">=1.8.0" },
@@ -1004,6 +1004,11 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c1/7e/96256ea9ae076b90e20e8c435a001281e1ff884467e0597d4245c769edf3/resend-2.46.0.tar.gz", hash = "sha256:db0ca26d9f46921082ccf28cf6a894b26a5287b003380cfb5039a7bc66d3b797", size = 61282, upload-time = "2026-09-15T21:24:28.248Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/db/2f/a20a11e2a398766ae51d6406cf49228a913dbd935ebe4f34acf8f07918c8/resend-2.46.0-py2.py3-none-any.whl", hash = "sha256:cb43ce303c6828c7a35912d9bc6b305e2b5870634b8256cf04af8ab76158633a", size = 93163, upload-time = "2026-09-15T21:24:26.99Z" },
+]
+
+[package.optional-dependencies]
+async = [
+    { name = "httpx" },
 ]
 
 [[package]]

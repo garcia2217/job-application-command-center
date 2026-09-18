@@ -25,6 +25,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             async with engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
         yield
+        await app.state.rate_limiter.redis.close()
         await engine.dispose()
 
     app = FastAPI(

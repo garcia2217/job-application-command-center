@@ -7,6 +7,8 @@ from qstash.errors import SignatureError
 from app.dependencies import SettingsDep
 from app.errors import JobSignatureError
 
+_PLACEHOLDER = "REPLACE_ME"
+
 
 async def verify_qstash_signature(
     request: Request,
@@ -16,6 +18,11 @@ async def verify_qstash_signature(
     """Route dependency for /jobs/*: only QStash may trigger jobs (no session)."""
     if not upstash_signature:
         raise JobSignatureError("Missing Upstash-Signature header")
+    if _PLACEHOLDER in (
+        settings.qstash_current_signing_key,
+        settings.qstash_next_signing_key,
+    ):
+        raise JobSignatureError("QStash signing keys are not configured")
     receiver = Receiver(
         current_signing_key=settings.qstash_current_signing_key,
         next_signing_key=settings.qstash_next_signing_key,

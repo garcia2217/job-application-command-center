@@ -1,14 +1,37 @@
+import base64
+import hashlib
 from datetime import timedelta
 
+import jwt
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clock import utcnow
+from app.config import get_settings
 from app.models import Account, Application, ApplicationStatus, JobRun
 from app.services.quiet_check_service import QuietCheckService
 from tests.conftest import make_application, make_company
+
+
+def _body_hash_claim(body: bytes) -> str:
+    return base64.urlsafe_b64encode(hashlib.sha256(body).digest()).decode().rstrip("=")
+
+
+def _sign(key: str, *, url: str = "http://localhost:8000/jobs/quiet-check") -> str:
+    now = int(utcnow().timestamp())
+    return jwt.encode(
+        {
+            "iss": "Upstash",
+            "sub": url,
+            "exp": now + 60,
+            "nbf": now - 60,
+            "body": _body_hash_claim(b""),
+        },
+        key,
+        algorithm="HS256",
+    )
 
 
 async def _seed(
@@ -115,7 +138,7 @@ async def test_failed_run_keeps_previous_flags(
 
     assert response.status_code == 200
     assert response.json()["status"] == "failed"
-    assert response.json()["detail"] == "RuntimeError: boom"
+    assert response.json()["detail"] == "Failed: RuntimeError"
     await db_session.refresh(previously_flagged)
     await db_session.refresh(newly_stale)
     assert previously_flagged.is_quiet is True
@@ -133,3 +156,27 @@ async def test_job_routes_require_qstash_signature(client: AsyncClient) -> None:
     )
     assert garbage.status_code == 401
     assert garbage.json()["code"] == "INVALID_JOB_SIGNATURE"
+
+
+async def test_placeholder_signing_key_is_rejected_even_if_token_matches(
+    client: AsyncClient,
+) -> None:  # M-3: fail closed rather than trust the literal "REPLACE_ME" key
+    token = _sign("REPLACE_ME")
+    response = await client.post(
+        "/jobs/quiet-check", headers={"Upstash-Signature": token}
+    )
+    assert response.status_code == 401
+    assert response.json()["code"] == "INVALID_JOB_SIGNATURE"
+
+
+async def test_real_signing_key_verifies(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("QSTASH_CURRENT_SIGNING_KEY", "test-key")
+    monkeypatch.setenv("QSTASH_NEXT_SIGNING_KEY", "test-key-2")
+    get_settings.cache_clear()  # the app fixture already cached the REPLACE_ME defaults
+    token = _sign("test-key")
+    response = await client.post(
+        "/jobs/quiet-check", headers={"Upstash-Signature": token}
+    )
+    assert response.status_code == 200

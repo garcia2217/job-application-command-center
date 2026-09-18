@@ -316,6 +316,7 @@ async def test_one_account_failure_does_not_block_the_other(
     owner_account: Account,
     other_account: Account,
     email_sender: FakeEmailSender,
+    rate_limiter: FakeRateLimiter,
     frozen_now,
 ) -> None:
     frozen_now(MONDAY_0900_UTC)
@@ -327,11 +328,20 @@ async def test_one_account_failure_does_not_block_the_other(
         last_activity_at=MONDAY_0900_UTC - timedelta(days=9),
         is_quiet=True,
     )
-    runs = (await jobs_client.post("/jobs/digest")).json()
-    assert {r["account_id"]: r["status"] for r in runs} == {
-        owner_account.id: "succeeded",
-        other_account.id: "skipped",
-    }
+
+    async def explode(day):
+        raise RuntimeError("redis down")
+
+    rate_limiter.try_acquire = explode
+
+    response = await jobs_client.post("/jobs/digest")
+    assert response.status_code == 200
+    runs = response.json()
+    by_account = {r["account_id"]: r for r in runs}
+    assert by_account[owner_account.id]["status"] == "failed"
+    assert by_account[owner_account.id]["detail"] == "Failed: RuntimeError"
+    assert by_account[other_account.id]["status"] == "skipped"
+    assert email_sender.sent == []
     total = (
         await db_session.execute(select(func.count()).select_from(JobRun))
     ).scalar_one()

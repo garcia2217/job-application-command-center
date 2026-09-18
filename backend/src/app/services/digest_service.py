@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, time, timedelta
 from zoneinfo import ZoneInfo
@@ -21,6 +22,8 @@ from app.models import (
 )
 from app.services.digest_render import render_digest
 from app.services.job_run_service import latest_run
+
+logger = logging.getLogger(__name__)
 
 DIGEST_HOUR = 8
 DIGEST_WINDOW = timedelta(days=7)
@@ -185,12 +188,21 @@ class DigestService:
         )
 
     async def _run_for(self, account: Account, now: datetime) -> JobRun | None:
+        # A previous account's rollback (below) expires every object still
+        # attached to this session, including accounts queued after it.
+        await self.db.refresh(account)
         if await self._already_ran(account, now):
             return None
-        status, detail = await self._deliver(account, now)
+        account_id = account.id
+        try:
+            status, detail = await self._deliver(account, now)
+        except Exception as exc:  # every failure is recorded, never raised
+            await self.db.rollback()
+            status, detail = JobStatus.FAILED, f"Failed: {type(exc).__name__}"
+            logger.exception("digest delivery failed for account %s", account_id)
         run = JobRun(
             job_type=JobType.DIGEST,
-            account_id=account.id,
+            account_id=account_id,
             ran_at=now,
             status=status,
             detail=detail[:500],
