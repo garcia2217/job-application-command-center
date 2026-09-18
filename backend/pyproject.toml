@@ -14,8 +14,11 @@ dependencies = [
     "pwdlib[argon2]>=0.3.1",
     "pydantic-settings>=2.15.0",
     "pydantic[email]>=2.13.5",
+    "qstash>=3.4.0",
+    "resend>=2.46.0",
     "sqlalchemy[asyncio]>=2.0.54",
     "tzdata>=2026.4",
+    "upstash-redis>=1.8.0",
 ]
 
 [tool.uv.build-backend]

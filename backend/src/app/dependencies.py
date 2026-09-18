@@ -6,6 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings, get_settings
 from app.errors import AuthenticationError
+from app.integrations.email import EmailSender
+from app.integrations.rate_limit import RateLimiter
 from app.models import Account
 from app.services.auth_service import AuthService
 
@@ -21,6 +23,18 @@ async def get_db(request: Request) -> AsyncGenerator[AsyncSession]:
 
 DbDep = Annotated[AsyncSession, Depends(get_db)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
+
+
+def get_email_sender(request: Request) -> EmailSender:
+    return request.app.state.email_sender
+
+
+def get_rate_limiter(request: Request) -> RateLimiter:
+    return request.app.state.rate_limiter
+
+
+EmailSenderDep = Annotated[EmailSender, Depends(get_email_sender)]
+RateLimiterDep = Annotated[RateLimiter, Depends(get_rate_limiter)]
 
 
 def get_auth_service(db: DbDep, settings: SettingsDep) -> AuthService:

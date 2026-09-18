@@ -13,6 +13,7 @@ class ErrorCode(StrEnum):
     COMPANY_HAS_APPLICATIONS = "COMPANY_HAS_APPLICATIONS"
     DUPLICATE_APPLICATION = "DUPLICATE_APPLICATION"
     CONTACT_COMPANY_MISMATCH = "CONTACT_COMPANY_MISMATCH"
+    INVALID_JOB_SIGNATURE = "INVALID_JOB_SIGNATURE"
     HTTP_ERROR = "HTTP_ERROR"
     INTERNAL_ERROR = "INTERNAL_ERROR"
 
@@ -57,6 +58,14 @@ class AuthenticationError(AppError):
     status_code = 401
     code = ErrorCode.UNAUTHENTICATED
     title = "Authentication required"
+
+
+class JobSignatureError(AppError):
+    """QStash signature missing or invalid on a /jobs route (never a session issue)."""
+
+    status_code = 401
+    code = ErrorCode.INVALID_JOB_SIGNATURE
+    title = "Invalid job signature"
 
 
 class ValidationFailedError(AppError):

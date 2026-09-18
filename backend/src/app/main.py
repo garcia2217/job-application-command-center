@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from app.config import Settings, get_settings
 from app.database import Base, build_engine, build_sessionmaker
 from app.error_handlers import register_exception_handlers
+from app.integrations import build_email_sender, build_rate_limiter
 from app.routers import applications, auth, companies, contacts, stages
 from app.routers import settings as settings_router
 
@@ -18,6 +19,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         engine = build_engine(settings.database_url)
         app.state.engine = engine
         app.state.sessionmaker = build_sessionmaker(engine)
+        app.state.email_sender = build_email_sender(settings)
+        app.state.rate_limiter = build_rate_limiter(settings)
         if settings.auto_create_tables:
             async with engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
