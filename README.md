@@ -64,6 +64,13 @@ bun run lint
 bun run build
 ```
 
+## Background jobs and email
+
+- **Daily quiet check** (`POST /jobs/quiet-check`, QStash cron `15 0 * * *` UTC) flags active applications with no activity for the account's threshold and records a run visible in Settings.
+- **Weekly digest** (`POST /jobs/digest`, QStash cron hourly) emails each account on Monday 08:00 in its own time zone via Resend, at most once per Monday and at most 5 emails per UTC day system-wide (Upstash Redis counter). The demo account never sends; both accounts can preview the digest. QStash retries are disabled for this schedule — the hourly cron is its own retry.
+- Both routes are authenticated by QStash request signatures, not sessions, and are idempotent, so a late trigger (the free API host sleeps) still does the right thing.
+- Register the schedules once with `uv run python scripts/register_schedules.py` after deploying.
+
 ## Repository Layout
 
 ```

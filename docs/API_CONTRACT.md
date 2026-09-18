@@ -18,6 +18,7 @@ only the decisions a schema can't express.
 - No `WWW-Authenticate` header is sent — this is cookie auth, not Bearer.
 - The browser never calls the backend directly; all calls go through the
   Next.js server (`src/lib/api.ts`, server-only).
+- `POST /jobs/quiet-check` and `POST /jobs/digest` are called by Upstash QStash schedules and authenticated by signature only; the frontend never calls them.
 
 ## Error responses
 
@@ -62,6 +63,7 @@ Initial set (grows as features land; keep this list current):
 | `COMPANY_HAS_APPLICATIONS` | 409 | Company deletion refused while it has applications (AC-02.6) |
 | `DUPLICATE_APPLICATION` | 409 | Same company + role title exists; resend with `confirm_duplicate: true` to save anyway (AC-02.5) |
 | `CONTACT_COMPANY_MISMATCH` | 409 | Contact and application belong to different companies (AC-03.2) |
+| `INVALID_JOB_SIGNATURE` | 401 | `/jobs/*` called without a valid QStash `Upstash-Signature` (these routes are never session-authenticated) |
 | `HTTP_ERROR` | 4xx | HTTP-level error outside the domain codes (e.g. 405 from routing) |
 | `INTERNAL_ERROR` | 500 | Unexpected failure; generic body only |
 
@@ -88,6 +90,8 @@ exist in the MVP.
   last. There is no pagination in the MVP.
 - Deleting an application or company needs a confirmation step in the UI; the
   API deletes on the first call.
+- `GET /applications` also accepts `quiet=true|false`. With `quiet=true` and no explicit `order`, results are oldest-activity-first (the Needs follow-up list). Every summary carries `days_since_activity` (whole days, computed at response time).
+- Job run statuses serialize as `succeeded | skipped | not_sent | failed`; job types as `quiet_check | digest`. `GET /settings/job-runs` returns `{quiet_check, digest}` (each `JobRun` or `null`; `null` means "First check pending"). `GET /settings/digest-preview` returns exactly what a send now would contain plus `would_send` and `skip_reason`.
 
 ## Frontend types
 
