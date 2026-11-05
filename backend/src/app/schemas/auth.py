@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, computed_field
 
 
 class LoginRequest(BaseModel):
@@ -21,3 +21,10 @@ class AccountResponse(BaseModel):
     is_demo: bool
     quiet_threshold_days: int
     timezone: str
+    # Read for has_resume only; never serialised (the resume stays off /auth/me).
+    resume_tex: str | None = Field(default=None, exclude=True)
+
+    @computed_field
+    @property
+    def has_resume(self) -> bool:
+        return self.resume_tex is not None
