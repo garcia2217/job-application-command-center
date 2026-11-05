@@ -10,6 +10,7 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clock import utcnow
+from app.comparison import compare
 from app.models import (
     Account,
     Application,
@@ -23,6 +24,40 @@ from app.models import (
     application_contacts,
 )
 from app.services.company_service import normalize_company_name
+
+DEMO_RESUME_TEX = r"""\documentclass[11pt]{article}
+\usepackage[margin=0.8in]{geometry}
+\usepackage{hyperref}
+
+% Kubernetes: still learning, so deliberately left out of the skills list.
+\begin{document}
+
+\begin{center}
+{\Large \textbf{Alex Demo}} \\
+Berlin, Germany \\
+\href{mailto:alex@demo.example}{alex@demo.example} \textbar{}
+\href{https://github.com/alex-demo}{github.com/alex-demo}
+\end{center}
+
+\section*{Skills}
+\textbf{Languages:} Python, TypeScript, SQL \\
+\textbf{Backend:} FastAPI, REST, Postgres, background workers \\
+\textbf{Tools:} Docker, Git, React
+
+\section*{Experience}
+\textbf{Backend Engineer}, Northwind Labs \hfill 2022 -- 2025
+\begin{itemize}
+  \item Built REST services with FastAPI and Postgres serving 2M requests/day.
+  \item Cut p95 latency by 40\% by profiling slow queries and adding indexes.
+  \item Packaged services with Docker and shipped through Git-based reviews.
+  \item Partnered with design \& product on a React and TypeScript dashboard.
+\end{itemize}
+
+\section*{Education}
+\textbf{B.Sc.\ Computer Science}, University of Example \hfill 2018 -- 2022
+
+\end{document}
+"""
 
 
 async def _clear(session: AsyncSession, account_id: int) -> None:
@@ -49,6 +84,8 @@ async def reset_demo_data(session: AsyncSession, account: Account) -> dict[str, 
     await _clear(session, account.id)
     now = utcnow()
     today = now.date()
+    account.resume_tex = DEMO_RESUME_TEX
+    account.resume_updated_at = now - timedelta(days=3)
 
     acme = _company(account.id, "Acme Robotics", "https://acme.example")
     nimbus = _company(account.id, "Nimbus Cloud", "https://nimbus.example")
@@ -66,6 +103,11 @@ async def reset_demo_data(session: AsyncSession, account: Account) -> dict[str, 
         applied_days_ago: int | None,
         **fields: object,
     ) -> Application:
+        # Always before the seeded comparison's ran_at (one day ago).
+        if fields.get("job_description"):
+            fields["job_description_updated_at"] = now - timedelta(
+                days=max(days_quiet, 2)
+            )
         return Application(
             account_id=account.id,
             company_id=company.id,
@@ -230,18 +272,12 @@ async def reset_demo_data(session: AsyncSession, account: Account) -> dict[str, 
     ]
     session.add_all(stages)
 
+    result = compare(DEMO_RESUME_TEX, backend_acme.job_description or "")
     comparison = Comparison(
         application_id=backend_acme.id,
-        matched_terms=[
-            "python",
-            "fastapi",
-            "postgresql",
-            "rest api",
-            "docker",
-            "background jobs",
-        ],
-        missing_terms=["kubernetes", "redis", "ci/cd"],
-        match_percentage=67,
+        matched_terms=result.matched,
+        missing_terms=result.missing,
+        match_percentage=result.match_percentage,
         ran_at=now - timedelta(days=1),
     )
     session.add(comparison)

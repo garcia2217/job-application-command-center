@@ -123,7 +123,7 @@ async def test_failure_at_exact_window_boundary_counts_as_inside(
 
 async def test_expired_session_is_rejected(
     service: AuthService, owner_account: Account, monkeypatch: pytest.MonkeyPatch
-) -> None:
+) -> None:  # AC-01.5
     token, _ = await service.login("owner@example.com", "owner-password-1")
     later = utcnow() + timedelta(days=7, seconds=1)
     monkeypatch.setattr(auth_module, "utcnow", lambda: later)

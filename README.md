@@ -6,7 +6,9 @@ Built as a portfolio project to demonstrate backend engineering depth — backgr
 
 ## Status
 
-🚧 Early development. Project scaffolding is in place; core features are being built milestone by milestone. This README will be updated with live demo credentials and URLs once the app is deployed.
+🚧 In development. The backend for F-01 to F-06 (accounts, applications and companies, contacts and interview stages, quiet-check, weekly digest, resume comparison) is built and covered by tests. The frontend has not been started. This README will be updated with live demo credentials and URLs once the app is deployed.
+
+Not yet verified live (covered by tests with doubles only): Upstash QStash schedules, Resend email, Upstash Redis rate limiting, and the Neon Postgres deployment.
 
 ## Features (planned MVP)
 
