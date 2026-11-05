@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import * as z from 'zod'
 import { api, ApiError } from '@/lib/api'
+import { parseApiInstant } from '@/lib/format'
 import { requireSession, SESSION_COOKIE } from '@/lib/session'
 import type { LoginResponse } from '@/lib/types'
 import { signInSchema } from '@/lib/validation'
@@ -42,7 +43,7 @@ export async function signIn(_prev: FormState, formData: FormData): Promise<Form
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    expires: new Date(session.expires_at), // the backend's 7-day expiry, so cookie and session agree
+    expires: parseApiInstant(session.expires_at), // the backend's 7-day expiry, so cookie and session agree
   })
   redirect('/')
 }

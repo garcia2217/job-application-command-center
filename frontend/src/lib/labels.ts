@@ -1,4 +1,4 @@
-import type { ApplicationStatus, JobRunResponse, StageOutcome, WorkArrangement } from './types'
+import type { ApplicationStatus, BlockedReason, JobRunResponse, StageOutcome, WorkArrangement } from './types'
 
 export const STATUS_LABEL: Record<ApplicationStatus, string> = {
   wishlist: 'Wishlist',
@@ -19,6 +19,18 @@ export const ARRANGEMENT_LABEL: Record<WorkArrangement, string> = {
   on_site: 'On-site',
   hybrid: 'Hybrid',
   remote: 'Remote',
+}
+
+/** Why Compare is disabled (AC-06.6); also the message when a run hits the same 409. */
+export const BLOCKED_REASON_TEXT: Record<BlockedReason, string> = {
+  no_resume: 'Add your resume in Settings first.',
+  no_job_description: 'Paste the job description first.',
+}
+
+/** The phrase in each reason that links to where it's fixed (Settings, the edit page). */
+export const BLOCKED_REASON_LINK: Record<BlockedReason, string> = {
+  no_resume: 'Settings',
+  no_job_description: 'job description',
 }
 
 // The backend already stores "Skipped: …" and "Failed: …" details; strip that

@@ -6,6 +6,7 @@ import {
   formatDay,
   isUrgentSilence,
   localDate,
+  parseApiInstant,
   relativeActivity,
   toLocalInput,
   todayTitle,
@@ -167,5 +168,37 @@ describe('localDate', () => {
 
   test('pads month and day', () => {
     expect(localDate(new Date('2026-02-03T12:00:00Z'), 'UTC')).toBe('2026-02-03')
+  })
+})
+
+// The contract says every API timestamp is UTC; SQLite can emit them without an
+// offset. These must hold whatever zone the host runs in (TZ=America/Los_Angeles bun test).
+describe('parseApiInstant', () => {
+  test('an offset-less date-time is UTC', () => {
+    expect(parseApiInstant('2026-11-05T05:02:00').toISOString()).toBe('2026-11-05T05:02:00.000Z')
+    expect(parseApiInstant('2026-11-05T05:02:00.374909').toISOString()).toBe('2026-11-05T05:02:00.374Z')
+  })
+
+  test('strings with Z or an offset pass through', () => {
+    expect(parseApiInstant('2026-11-05T05:02:00Z').toISOString()).toBe('2026-11-05T05:02:00.000Z')
+    expect(parseApiInstant('2026-11-05T14:02:00+09:00').toISOString()).toBe('2026-11-05T05:02:00.000Z')
+    expect(parseApiInstant('2026-11-05T00:02:00-05:00').toISOString()).toBe('2026-11-05T05:02:00.000Z')
+  })
+
+  for (const zone of ['Asia/Tokyo', 'America/New_York']) {
+    test(`offset-less and Z format the same in ${zone}`, () => {
+      const naive = '2026-11-05T05:02:00'
+      const utc = '2026-11-05T05:02:00Z'
+      expect(formatDateTime(naive, zone, NOW)).toBe(formatDateTime(utc, zone, NOW))
+      expect(formatDay(naive, zone, NOW)).toBe(formatDay(utc, zone, NOW))
+      expect(toLocalInput(naive, zone)).toBe(toLocalInput(utc, zone))
+      expect(upcomingParts(naive, zone, NOW)).toEqual(upcomingParts(utc, zone, NOW))
+    })
+  }
+
+  test('the concrete values', () => {
+    expect(formatDateTime('2026-11-05T05:02:00', 'Asia/Tokyo', NOW)).toBe('5 Nov, 14:02')
+    expect(formatDateTime('2026-11-05T05:02:00', 'America/New_York', NOW)).toBe('5 Nov, 00:02')
+    expect(toLocalInput('2026-11-05T05:02:00', 'America/New_York')).toBe('2026-11-05T00:02')
   })
 })

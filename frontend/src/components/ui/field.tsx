@@ -8,6 +8,8 @@ type Common = {
   name: string
   errors?: string[]
   hint?: ReactNode
+  /** for forms rendered more than once on a page (stage edit + add): keeps ids unique */
+  idPrefix?: string
 }
 
 type InputFieldProps = Common & { as?: 'input' } & Omit<ComponentProps<'input'>, 'name' | 'id'>
@@ -30,8 +32,8 @@ export function fieldId(name: string): string {
 }
 
 export function Field(props: FieldProps) {
-  const { label, name, errors, hint, ...control } = props
-  const id = fieldId(name)
+  const { label, name, errors, hint, idPrefix = '', ...control } = props
+  const id = `${idPrefix}${fieldId(name)}`
   const errorId = `${id}-error`
   const hintId = `${id}-hint`
   const invalid = Boolean(errors?.length)

@@ -29,8 +29,20 @@ function hourMinute(date: Date, timeZone: string): string {
   return `${p.hour}:${p.minute}`
 }
 
+// A date-time with an explicit Z or ±hh:mm / ±hhmm offset at the end.
+const HAS_OFFSET = /(Z|[+-]\d{2}:?\d{2})$/i
+
+/**
+ * Every API timestamp is UTC (docs/API_CONTRACT.md), but some backends (SQLite)
+ * emit them without an offset, which `new Date()` would read in the host's zone.
+ * Treat an offset-less date-time as UTC; pass anything with an offset through.
+ */
+export function parseApiInstant(iso: string): Date {
+  return new Date(HAS_OFFSET.test(iso) ? iso : `${iso}Z`)
+}
+
 export function formatDay(iso: string, timeZone: string, now: Date = new Date()): string {
-  return dayMonth(new Date(iso), timeZone, now)
+  return dayMonth(parseApiInstant(iso), timeZone, now)
 }
 
 /** For `YYYY-MM-DD` values (date_applied): a calendar date, never shifted by a zone. */
@@ -39,14 +51,14 @@ export function formatDateOnly(date: string, now: Date = new Date()): string {
 }
 
 export function formatDateTime(iso: string, timeZone: string, now: Date = new Date()): string {
-  const date = new Date(iso)
+  const date = parseApiInstant(iso)
   return `${dayMonth(date, timeZone, now)}, ${hourMinute(date, timeZone)}`
 }
 
 /** Value for an `<input type="datetime-local">`, in the account's zone. */
 export function toLocalInput(iso: string | null, timeZone: string): string {
   if (!iso) return ''
-  const date = new Date(iso)
+  const date = parseApiInstant(iso)
   return `${localDateKey(date, timeZone)}T${hourMinute(date, timeZone)}`
 }
 
@@ -69,7 +81,7 @@ export function relativeActivity(days: number): string {
 export type UpcomingParts = { day: string; date: string; time: string }
 
 export function upcomingParts(iso: string, timeZone: string, now: Date = new Date()): UpcomingParts {
-  const date = new Date(iso)
+  const date = parseApiInstant(iso)
   const p = parts(date, timeZone, { weekday: 'short', day: 'numeric' })
   const isToday = localDateKey(date, timeZone) === localDateKey(now, timeZone)
   return { day: isToday ? 'Today' : (p.weekday ?? ''), date: p.day ?? '', time: hourMinute(date, timeZone) }

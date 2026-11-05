@@ -1,5 +1,12 @@
 import { describe, expect, test } from 'bun:test'
-import { ARRANGEMENT_LABEL, OUTCOME_LABEL, STATUS_LABEL, jobRunText } from '@/lib/labels'
+import {
+  ARRANGEMENT_LABEL,
+  BLOCKED_REASON_LINK,
+  BLOCKED_REASON_TEXT,
+  OUTCOME_LABEL,
+  STATUS_LABEL,
+  jobRunText,
+} from '@/lib/labels'
 import { APPLICATION_STATUSES, STAGE_OUTCOMES, WORK_ARRANGEMENTS, type JobRunResponse } from '@/lib/types'
 
 function run(status: JobRunResponse['status'], detail: string | null): JobRunResponse {
@@ -68,5 +75,25 @@ describe('jobRunText', () => {
 
   test('failed with no detail', () => {
     expect(jobRunText(run('failed', null))).toBe('Failed: unknown error')
+  })
+})
+
+describe('BLOCKED_REASON_TEXT', () => {
+  test('the PRD reasons (AC-06.6)', () => {
+    expect(BLOCKED_REASON_TEXT).toEqual({
+      no_resume: 'Add your resume in Settings first.',
+      no_job_description: 'Paste the job description first.',
+    })
+  })
+
+  test('each linked phrase appears exactly once in its reason', () => {
+    for (const reason of ['no_resume', 'no_job_description'] as const) {
+      const parts = BLOCKED_REASON_TEXT[reason].split(BLOCKED_REASON_LINK[reason])
+      expect(parts).toHaveLength(2)
+    }
+  })
+
+  test('the settings reason links the word Settings', () => {
+    expect(BLOCKED_REASON_LINK.no_resume).toBe('Settings')
   })
 })

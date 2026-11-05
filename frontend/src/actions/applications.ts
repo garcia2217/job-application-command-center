@@ -7,12 +7,23 @@ import { api, ApiError } from '@/lib/api'
 import { companyTakenState } from '@/lib/application-form'
 import { applicationPayload } from '@/lib/payload'
 import { requireSession } from '@/lib/session'
-import type { ApplicationDetailResponse } from '@/lib/types'
+import type { ApplicationDetailResponse, CompanyResponse } from '@/lib/types'
 import { applicationSchema } from '@/lib/validation'
 import { apiErrorState, formValues, type FormState } from './form-state'
 
 const SAVE_FAILED = 'Could not save the application. Try again.'
 const DELETE_FAILED = 'Could not delete the application. Try again.'
+
+// For naming the existing company only: if the lookup fails, the form still comes
+// back with the field error and the typed values, just without the "Use {name}" offer.
+async function companiesOrNone(): Promise<CompanyResponse[]> {
+  try {
+    return await api.companies.list()
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error
+    return []
+  }
+}
 
 export async function createApplication(_prev: FormState, formData: FormData): Promise<FormState> {
   await requireSession()
@@ -29,7 +40,7 @@ export async function createApplication(_prev: FormState, formData: FormData): P
       return { duplicateOf: error.existingId, values }
     }
     if (error.code === 'COMPANY_NAME_TAKEN') {
-      return companyTakenState(await api.companies.list(), error.existingId, values)
+      return companyTakenState(await companiesOrNone(), error.existingId, values)
     }
     return apiErrorState(error, values, SAVE_FAILED)
   }
