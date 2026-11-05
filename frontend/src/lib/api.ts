@@ -2,6 +2,7 @@ import 'server-only'
 import { cookies } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import { cache } from 'react'
+import { assertId, isId } from './ids'
 import { parseProblem, type FieldErrors } from './problem'
 import { SESSION_COOKIE } from './session'
 import type {
@@ -115,58 +116,58 @@ export const api = {
         })}`,
       ),
     quiet: cache(() => request<ApplicationSummary[]>('/applications?quiet=true')),
-    get: cache((id: number) => request<ApplicationDetailResponse>(`/applications/${id}`)),
+    get: cache((id: number) => request<ApplicationDetailResponse>(`/applications/${assertId(id)}`)),
     create: (body: ApplicationCreate) =>
       request<ApplicationDetailResponse>('/applications', { method: 'POST', body: json(body) }),
     update: (id: number, body: ApplicationUpdate) =>
-      request<ApplicationDetailResponse>(`/applications/${id}`, { method: 'PATCH', body: json(body) }),
-    remove: (id: number) => request<void>(`/applications/${id}`, { method: 'DELETE' }),
+      request<ApplicationDetailResponse>(`/applications/${assertId(id)}`, { method: 'PATCH', body: json(body) }),
+    remove: (id: number) => request<void>(`/applications/${assertId(id)}`, { method: 'DELETE' }),
   },
   comparisons: {
-    get: (id: number) => request<ComparisonStateResponse>(`/applications/${id}/comparison`),
-    run: (id: number) => request<ComparisonStateResponse>(`/applications/${id}/comparison`, { method: 'POST' }),
+    get: (id: number) => request<ComparisonStateResponse>(`/applications/${assertId(id)}/comparison`),
+    run: (id: number) => request<ComparisonStateResponse>(`/applications/${assertId(id)}/comparison`, { method: 'POST' }),
   },
   stages: {
     upcoming: cache(() => request<UpcomingStageSummary[]>('/stages/upcoming')),
     create: (appId: number, body: StageCreate) =>
-      request<StageResponse>(`/applications/${appId}/stages`, { method: 'POST', body: json(body) }),
+      request<StageResponse>(`/applications/${assertId(appId)}/stages`, { method: 'POST', body: json(body) }),
     update: (appId: number, id: number, body: StageUpdate) =>
-      request<StageResponse>(`/applications/${appId}/stages/${id}`, { method: 'PATCH', body: json(body) }),
+      request<StageResponse>(`/applications/${assertId(appId)}/stages/${assertId(id)}`, { method: 'PATCH', body: json(body) }),
     remove: (appId: number, id: number) =>
-      request<void>(`/applications/${appId}/stages/${id}`, { method: 'DELETE' }),
+      request<void>(`/applications/${assertId(appId)}/stages/${assertId(id)}`, { method: 'DELETE' }),
     move: (appId: number, id: number, direction: 'up' | 'down') =>
       // returns the application's stages in their new order
-      request<StageResponse[]>(`/applications/${appId}/stages/${id}/move`, {
+      request<StageResponse[]>(`/applications/${assertId(appId)}/stages/${assertId(id)}/move`, {
         method: 'POST',
         body: json({ direction }),
       }),
   },
   companies: {
     list: cache(() => request<CompanyResponse[]>('/companies')),
-    get: cache((id: number) => request<CompanyDetailResponse>(`/companies/${id}`)),
+    get: cache((id: number) => request<CompanyDetailResponse>(`/companies/${assertId(id)}`)),
     create: (body: CompanyCreate) => request<CompanyResponse>('/companies', { method: 'POST', body: json(body) }),
     update: (id: number, body: CompanyUpdate) =>
-      request<CompanyResponse>(`/companies/${id}`, { method: 'PATCH', body: json(body) }),
-    remove: (id: number) => request<void>(`/companies/${id}`, { method: 'DELETE' }),
+      request<CompanyResponse>(`/companies/${assertId(id)}`, { method: 'PATCH', body: json(body) }),
+    remove: (id: number) => request<void>(`/companies/${assertId(id)}`, { method: 'DELETE' }),
   },
   contacts: {
     list: () => request<ContactListItem[]>('/contacts'),
-    get: (id: number) => request<ContactResponse>(`/contacts/${id}`),
+    get: (id: number) => request<ContactResponse>(`/contacts/${assertId(id)}`),
     create: (body: ContactCreate) => request<ContactResponse>('/contacts', { method: 'POST', body: json(body) }),
     update: (id: number, body: ContactUpdate) =>
-      request<ContactResponse>(`/contacts/${id}`, { method: 'PATCH', body: json(body) }),
-    remove: (id: number) => request<void>(`/contacts/${id}`, { method: 'DELETE' }),
+      request<ContactResponse>(`/contacts/${assertId(id)}`, { method: 'PATCH', body: json(body) }),
+    remove: (id: number) => request<void>(`/contacts/${assertId(id)}`, { method: 'DELETE' }),
     link: (appId: number, id: number) =>
-      request<void>(`/applications/${appId}/contacts/${id}`, { method: 'PUT' }),
+      request<void>(`/applications/${assertId(appId)}/contacts/${assertId(id)}`, { method: 'PUT' }),
     unlink: (appId: number, id: number) =>
-      request<void>(`/applications/${appId}/contacts/${id}`, { method: 'DELETE' }),
+      request<void>(`/applications/${assertId(appId)}/contacts/${assertId(id)}`, { method: 'DELETE' }),
   },
 }
 
 /** Route param → positive integer id, or notFound() for anything else. */
 export function parseId(raw: string): number {
-  if (!/^[1-9]\d*$/.test(raw)) notFound()
+  // digits only first: Number() also accepts '1e3', ' 7' and '0x1f'
   const id = Number(raw)
-  if (!Number.isSafeInteger(id)) notFound()
+  if (!/^[1-9]\d*$/.test(raw) || !isId(id)) notFound()
   return id
 }

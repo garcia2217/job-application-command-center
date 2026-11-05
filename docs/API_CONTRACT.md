@@ -11,7 +11,7 @@ only the decisions a schema can't express.
   (7 days, fixed expiry); sign-out deletes it, revoking immediately.
 - `POST /auth/login` returns the session token and its expiry **in the response
   body**: `{ "token": "...", "expires_at": "<ISO 8601 UTC>" }`. The frontend's sign-in Server Action stores it as a first-party
-  `session` cookie (httpOnly, Secure, SameSite=Lax) on the Next.js domain.
+  `session` cookie (httpOnly, SameSite=Lax, and Secure in production; it is not Secure under `NODE_ENV` other than `production`, so local http works) on the Next.js domain.
 - Every other endpoint expects the token via the `Cookie: session=<token>`
   header, forwarded by the frontend API client. Invalid, expired, or revoked
   sessions get `401`.

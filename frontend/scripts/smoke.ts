@@ -63,12 +63,13 @@ async function firstApplicationWithComparison(page: Page): Promise<number | null
   return null
 }
 
-async function firstCompanyPath(page: Page): Promise<string | null> {
-  await page.goto(`${BASE_URL}/companies`)
+/** The first link on `listPath` whose href matches `pattern`. */
+async function firstLink(page: Page, listPath: string, pattern: RegExp): Promise<string | null> {
+  await page.goto(`${BASE_URL}${listPath}`)
   const hrefs = await page
-    .locator('a[href^="/companies/"]')
+    .locator(`a[href^="${listPath}/"]`)
     .evaluateAll((links) => links.map((a) => a.getAttribute('href') ?? ''))
-  return hrefs.find((h) => /^\/companies\/\d+$/.test(h)) ?? null
+  return hrefs.find((h) => pattern.test(h)) ?? null
 }
 
 async function checkScreen(page: Page, path: string, slug: string): Promise<void> {
@@ -101,6 +102,9 @@ async function main(): Promise<void> {
     const context = await browser.newContext({ deviceScaleFactor: 2, viewport: VIEWPORTS[1] })
     const page = await context.newPage()
 
+    await checkScreen(page, '/sign-in', 'sign-in')
+    await page.setViewportSize(VIEWPORTS[1])
+
     // AC-01.2: one generic message for a wrong password
     await signIn(page, `${DEMO_PASSWORD}-wrong`)
     // scoped to the form: Next's route announcer is also role="alert"
@@ -117,8 +121,10 @@ async function main(): Promise<void> {
 
     const comparedId = await firstApplicationWithComparison(page)
     check('an application with a comparison exists', comparedId !== null, String(comparedId))
-    const companyPath = await firstCompanyPath(page)
+    const companyPath = await firstLink(page, '/companies', /^\/companies\/\d+$/)
     check('a company exists', companyPath !== null, String(companyPath))
+    const contactEditPath = await firstLink(page, '/contacts', /^\/contacts\/\d+\/edit$/)
+    check('a contact exists', contactEditPath !== null, String(contactEditPath))
 
     const screens: [string, string][] = [
       ['/', 'home'],
@@ -130,13 +136,50 @@ async function main(): Promise<void> {
             [`/applications/${comparedId}/edit`, 'application-edit'],
           ] as [string, string][])
         : []),
+      ['/applications/new', 'application-new'],
       ['/companies', 'companies'],
-      ...(companyPath ? ([[companyPath, 'company-detail']] as [string, string][]) : []),
+      ['/companies/new', 'company-new'],
+      ...(companyPath
+        ? ([
+            [companyPath, 'company-detail'],
+            [`${companyPath}/edit`, 'company-edit'],
+          ] as [string, string][])
+        : []),
       ['/contacts', 'contacts'],
+      ['/contacts/new', 'contact-new'],
+      ...(contactEditPath ? ([[contactEditPath, 'contact-edit']] as [string, string][]) : []),
       ['/settings', 'settings'],
       ['/settings/digest-preview', 'digest-preview'],
     ]
     for (const [path, slug] of screens) await checkScreen(page, path, slug)
+    await page.setViewportSize(VIEWPORTS[1])
+
+    // Contacts have no detail page: /contacts/{id} forwards to its edit page
+    if (contactEditPath) {
+      await page.goto(`${BASE_URL}${contactEditPath.replace(/\/edit$/, '')}`)
+      // the (app) layout streams before the page runs, so redirect() lands client-side
+      await page.waitForURL(`${BASE_URL}${contactEditPath}`, { timeout: 10_000 }).catch(() => {})
+      check('/contacts/{id} redirects to its edit page', pathOf(page) === contactEditPath, page.url())
+    }
+    // Unknown URLs get the app's own 404
+    const missing = await page.goto(`${BASE_URL}/no-such-page`)
+    check('unknown URL is a 404', missing?.status() === 404, String(missing?.status()))
+    check(
+      'unknown URL shows the not-found page',
+      (await page.getByText("This page doesn't exist.").count()) === 1 && (await page.locator('h1').count()) === 1,
+    )
+
+    // Session expiring between page load and submit: the Server Action's 401 → /session-expired → /sign-in
+    await page.goto(`${BASE_URL}/companies/new`)
+    await page.getByLabel('Name').fill(`Smoke expired-session probe ${Date.now()}`)
+    await context.addCookies([{ name: 'session', value: 'expired-before-submit', url: BASE_URL }])
+    await page.getByRole('button', { name: 'Save company' }).click()
+    await page.waitForURL(`${BASE_URL}/sign-in`, { timeout: 10_000 }).catch(() => {})
+    check('form submit with an invalid session lands on /sign-in', pathOf(page) === '/sign-in', page.url())
+    check('invalid session cookie cleared after submit', !(await sessionCookie(context)))
+    await signIn(page, DEMO_PASSWORD)
+    await page.waitForURL(`${BASE_URL}/`)
+    check('signed back in after the expired-session submit', pathOf(page) === '/', page.url())
 
     // A stale cookie: / → 401 → /session-expired (cookie deleted) → /sign-in
     const stale = await browser.newContext({ deviceScaleFactor: 2 })
@@ -149,7 +192,6 @@ async function main(): Promise<void> {
     check('invalid cookie is cleared', !(await sessionCookie(stale)))
     await stale.close()
 
-    await page.setViewportSize(VIEWPORTS[1])
     await page.goto(`${BASE_URL}/`)
     await page.getByRole('button', { name: 'Sign out' }).click()
     await page.waitForURL(`${BASE_URL}/sign-in`)
