@@ -45,3 +45,26 @@ Code is complete and tested with doubles; per NFR-06 the scheduler and email are
    - In the QStash console, open `jacc-quiet-check` and trigger it now; then `GET /settings/job-runs` (signed in) shows a `succeeded` quiet_check with a fresh `ran_at`, and the demo account's Needs follow-up list (`GET /applications?quiet=true`) is non-empty.
    - Trigger `jacc-digest` now: the owner account's digest run shows `succeeded` (or `skipped: nothing to report` if nothing is quiet — add a back-dated application first) and the email arrives in the inbox, not just the Resend "sent" log (R-03).
    - G-03 needs two consecutive real Mondays; note the dates here when they pass.
+
+## Milestone 5 — frontend deployment (added 2026-11-05)
+
+The frontend is built and checked locally (`bun run build`, `scripts/smoke.ts`
+against a local API). Per NFR-06 it is "not yet verified live" until it runs
+deployed against the deployed API.
+
+1. **Deploy the frontend** to Vercel or Netlify with `frontend/` as the project
+   root.
+2. **On the frontend host** set `API_BASE_URL` to the API's public URL (the Render
+   URL, no trailing slash). It is read only on the Next.js server, so never add
+   a `NEXT_PUBLIC_` prefix.
+3. **On the API host (Render)** set `APP_BASE_URL` to the frontend's public URL
+   (no trailing slash). The digest links point there.
+4. **Serve the frontend over HTTPS** (the Vercel/Netlify default). In production
+   the `session` cookie is `Secure`, so a browser on plain HTTP won't store it
+   and sign-in appears to do nothing.
+5. **Verify live:** sign in with the demo credentials on the deployed URL, open
+   an application, and sign out. Then run the smoke script against it from
+   `frontend/`:
+   `BASE_URL=https://<frontend-url> DEMO_EMAIL=... DEMO_PASSWORD=... OUT_DIR=/tmp/smoke bun scripts/smoke.ts`
+   and expect `ALL PASS`. The first request may take a while as the free Render
+   API wakes up (NFR-02).

@@ -221,9 +221,9 @@ Non-negotiable, checked per screen:
 
 ---
 
-## 8. Screens still to be designed
+## 8. Screens beyond the home prototype
 
-These follow the rules above but have no settled layout yet. Design them with the `product-design` skill before implementing:
+These follow the rules above. Their settled layout and copy are in the milestone 5 design spec, `docs/superpowers/specs/2026-11-05-milestone-5-frontend-design.md` ("Screens"), which was built in milestone 5:
 
 - Add / edit application form (incl. inline company creation, duplicate warning)
 - Application detail (header, contacts, ordered interview stages, comparison result)
@@ -231,4 +231,5 @@ These follow the rules above but have no settled layout yet. Design them with th
 - Contacts list
 - Settings (quiet threshold, time zone, resume paste, digest preview, run records)
 - Sign-in
-- Digest email template (HTML email — different constraints; tokens still apply)
+
+The digest email template (HTML email — different constraints; tokens still apply) was built in milestone 3.
