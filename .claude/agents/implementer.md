@@ -1,7 +1,7 @@
 ---
 name: implementer
 description: Writes and edits code based on an approved plan. Use for all actual code writing — the main session plans and reviews only.
-model: sonnet
+model: opus
 effort: medium
 tools: Read, Write, Edit, Bash, Glob, Grep
 ---
