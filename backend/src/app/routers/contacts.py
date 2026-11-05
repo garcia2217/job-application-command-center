@@ -3,7 +3,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Response, status
 
 from app.dependencies import CurrentAccountDep, DbDep
-from app.schemas.contact import ContactCreate, ContactResponse, ContactUpdate
+from app.schemas.contact import (
+    ContactCreate,
+    ContactListItem,
+    ContactResponse,
+    ContactUpdate,
+)
+from app.schemas.problem import problem_responses
 from app.services.contact_service import ContactService
 
 router = APIRouter(prefix="/contacts", tags=["contacts"])
@@ -24,6 +30,11 @@ async def create_contact(
     payload: ContactCreate, account: CurrentAccountDep, service: ContactServiceDep
 ):
     return await service.create(account.id, payload)
+
+
+@router.get("", response_model=list[ContactListItem], responses=problem_responses(401))
+async def list_contacts(account: CurrentAccountDep, service: ContactServiceDep):
+    return await service.list(account.id)
 
 
 @router.get("/{contact_id}", response_model=ContactResponse)

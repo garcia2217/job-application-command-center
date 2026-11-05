@@ -46,6 +46,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(applications.router)
     app.include_router(comparisons.router)
     app.include_router(stages.router)
+    app.include_router(stages.upcoming_router)
     app.include_router(contacts.router)
     app.include_router(contacts.links_router)
     app.include_router(jobs.router)

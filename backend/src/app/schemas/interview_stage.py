@@ -20,6 +20,14 @@ class StageResponse(BaseModel):
     created_at: datetime
 
 
+class UpcomingStageSummary(BaseModel):
+    application_id: int
+    company: str
+    role_title: str
+    stage_name: str
+    scheduled_at: datetime
+
+
 class StageCreate(BaseModel):
     name: NonBlankStr
     scheduled_at: datetime | None = None

@@ -18,6 +18,10 @@ class ContactResponse(BaseModel):
     created_at: datetime
 
 
+class ContactListItem(ContactResponse):
+    company_name: str
+
+
 class ContactCreate(BaseModel):
     company_id: int
     name: NonBlankStr

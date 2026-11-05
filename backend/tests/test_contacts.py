@@ -158,3 +158,82 @@ async def test_foreign_contact_is_404(
     await db_session.commit()
     assert (await owner_client.get(f"/contacts/{contact.id}")).status_code == 404
     assert (await owner_client.delete(f"/contacts/{contact.id}")).status_code == 404
+
+
+async def test_list_requires_session(client: AsyncClient) -> None:
+    response = await client.get("/contacts")
+    assert response.status_code == 401
+    assert response.json()["code"] == "UNAUTHENTICATED"
+
+
+async def test_list_empty(owner_client: AsyncClient) -> None:
+    response = await owner_client.get("/contacts")
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+async def test_list_sorted_case_insensitive_with_company_name(
+    owner_client: AsyncClient, owner_account: Account, db_session: AsyncSession
+) -> None:  # AC-03.1
+    acme = await make_company(db_session, owner_account, "Acme")
+    globex = await make_company(db_session, owner_account, "Globex")
+    db_session.add_all(
+        [
+            Contact(account_id=owner_account.id, company_id=acme.id, name="bob"),
+            Contact(
+                account_id=owner_account.id,
+                company_id=globex.id,
+                name="Alice",
+                title="Recruiter",
+                email="alice@example.com",
+                linkedin_url="https://linkedin.com/in/alice",
+                notes="Met at meetup",
+            ),
+            Contact(account_id=owner_account.id, company_id=acme.id, name="carol"),
+        ]
+    )
+    await db_session.commit()
+
+    response = await owner_client.get("/contacts")
+    assert response.status_code == 200
+    items = response.json()
+    assert [c["name"] for c in items] == ["Alice", "bob", "carol"]
+    assert [(c["company_id"], c["company_name"]) for c in items] == [
+        (globex.id, "Globex"),
+        (acme.id, "Acme"),
+        (acme.id, "Acme"),
+    ]
+    assert set(items[0]) == {
+        "id",
+        "company_id",
+        "company_name",
+        "name",
+        "title",
+        "email",
+        "linkedin_url",
+        "notes",
+        "created_at",
+    }
+    assert items[0]["title"] == "Recruiter"
+    assert items[0]["email"] == "alice@example.com"
+    assert items[0]["linkedin_url"] == "https://linkedin.com/in/alice"
+    assert items[0]["notes"] == "Met at meetup"
+
+
+async def test_list_excludes_other_accounts(
+    owner_client: AsyncClient,
+    owner_account: Account,
+    other_account: Account,
+    db_session: AsyncSession,
+) -> None:  # AC-01.7
+    mine = await make_company(db_session, owner_account, "Acme")
+    foreign = await make_company(db_session, other_account, "Foreign")
+    db_session.add_all(
+        [
+            Contact(account_id=owner_account.id, company_id=mine.id, name="Ann"),
+            Contact(account_id=other_account.id, company_id=foreign.id, name="Zed"),
+        ]
+    )
+    await db_session.commit()
+    response = await owner_client.get("/contacts")
+    assert [c["name"] for c in response.json()] == ["Ann"]

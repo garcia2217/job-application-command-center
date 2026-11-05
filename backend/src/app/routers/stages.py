@@ -2,16 +2,20 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response, status
 
+from app.clock import utcnow
 from app.dependencies import CurrentAccountDep, DbDep
 from app.schemas.interview_stage import (
     StageCreate,
     StageMove,
     StageResponse,
     StageUpdate,
+    UpcomingStageSummary,
 )
+from app.schemas.problem import problem_responses
 from app.services.stage_service import StageService
 
 router = APIRouter(prefix="/applications/{application_id}/stages", tags=["stages"])
+upcoming_router = APIRouter(prefix="/stages", tags=["stages"])
 
 
 def get_stage_service(db: DbDep) -> StageService:
@@ -62,3 +66,12 @@ async def move_stage(
     service: StageServiceDep,
 ):
     return await service.move(account.id, application_id, stage_id, payload.direction)
+
+
+@upcoming_router.get(
+    "/upcoming",
+    response_model=list[UpcomingStageSummary],
+    responses=problem_responses(401),
+)
+async def upcoming_stages(account: CurrentAccountDep, service: StageServiceDep):
+    return await service.upcoming(account.id, utcnow())

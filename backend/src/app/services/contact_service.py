@@ -1,9 +1,17 @@
-from sqlalchemy import select
+import builtins
+
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.errors import ConflictError, ErrorCode, NotFoundError
 from app.models import Contact
-from app.schemas.contact import ContactCreate, ContactUpdate
+from app.schemas.contact import (
+    ContactCreate,
+    ContactListItem,
+    ContactResponse,
+    ContactUpdate,
+)
 from app.services.application_service import ApplicationService
 from app.services.company_service import CompanyService
 
@@ -15,6 +23,22 @@ class ContactService:
         self.db = db
         self.companies = CompanyService(db)
         self.applications = ApplicationService(db)
+
+    # builtins.list: Python 3.14 lazy annotations would resolve `list` to this method.
+    async def list(self, account_id: int) -> builtins.list[ContactListItem]:
+        result = await self.db.execute(
+            select(Contact)
+            .where(Contact.account_id == account_id)
+            .options(selectinload(Contact.company))
+            .order_by(func.lower(Contact.name), Contact.id)
+        )
+        return [
+            ContactListItem(
+                **ContactResponse.model_validate(c).model_dump(),
+                company_name=c.company.name,
+            )
+            for c in result.scalars()
+        ]
 
     async def get(self, account_id: int, contact_id: int) -> Contact:
         result = await self.db.execute(

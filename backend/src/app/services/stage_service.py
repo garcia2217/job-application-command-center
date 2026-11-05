@@ -1,14 +1,23 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 from zoneinfo import ZoneInfo
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
+from app.clock import as_utc
 from app.errors import NotFoundError
 from app.models import Account, Application, InterviewStage
-from app.schemas.interview_stage import StageCreate, StageUpdate
+from app.schemas.interview_stage import (
+    StageCreate,
+    StageUpdate,
+    UpcomingStageSummary,
+)
 from app.services.activity import record_activity
 from app.services.application_service import ApplicationService
+
+UPCOMING_WINDOW = timedelta(days=7)
 
 
 def to_utc(value: datetime | None, timezone: str) -> datetime | None:
@@ -24,6 +33,35 @@ class StageService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
         self.applications = ApplicationService(db)
+
+    async def upcoming(
+        self, account_id: int, now: datetime
+    ) -> list[UpcomingStageSummary]:
+        result = await self.db.execute(
+            select(InterviewStage)
+            .join(Application)
+            .where(
+                Application.account_id == account_id,
+                InterviewStage.scheduled_at >= now,
+                InterviewStage.scheduled_at < now + UPCOMING_WINDOW,
+            )
+            .options(
+                selectinload(InterviewStage.application).selectinload(
+                    Application.company
+                )
+            )
+            .order_by(InterviewStage.scheduled_at.asc(), InterviewStage.id.asc())
+        )
+        return [
+            UpcomingStageSummary(
+                application_id=s.application_id,
+                company=s.application.company.name,
+                role_title=s.application.role_title,
+                stage_name=s.name,
+                scheduled_at=as_utc(s.scheduled_at),
+            )
+            for s in result.scalars()
+        ]
 
     async def create(
         self, account: Account, application_id: int, payload: StageCreate
