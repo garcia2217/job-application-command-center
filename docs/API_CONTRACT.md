@@ -63,6 +63,8 @@ Initial set (grows as features land; keep this list current):
 | `COMPANY_HAS_APPLICATIONS` | 409 | Company deletion refused while it has applications (AC-02.6) |
 | `DUPLICATE_APPLICATION` | 409 | Same company + role title exists; resend with `confirm_duplicate: true` to save anyway (AC-02.5) |
 | `CONTACT_COMPANY_MISMATCH` | 409 | Contact and application belong to different companies (AC-03.2) |
+| `RESUME_REQUIRED` | 409 | Compare run with no saved resume (AC-06.6) |
+| `JOB_DESCRIPTION_REQUIRED` | 409 | Compare run on an application with no job description text (AC-06.6) |
 | `INVALID_JOB_SIGNATURE` | 401 | `/jobs/*` called without a valid QStash `Upstash-Signature` (these routes are never session-authenticated) |
 | `HTTP_ERROR` | 4xx | HTTP-level error outside the domain codes (e.g. 405 from routing) |
 | `INTERNAL_ERROR` | 500 | Unexpected failure; generic body only |
@@ -92,6 +94,10 @@ exist in the MVP.
   API deletes on the first call.
 - `GET /applications` also accepts `quiet=true|false`. With `quiet=true` and no explicit `order`, results are oldest-activity-first (the Needs follow-up list). Every summary carries `days_since_activity` (whole days, computed at response time).
 - Job run statuses serialize as `succeeded | skipped | not_sent | failed`; job types as `quiet_check | digest`. `GET /settings/job-runs` returns `{quiet_check, digest}` (each `JobRun` or `null`; `null` means "First check pending"). `GET /settings/digest-preview` returns exactly what a send now would contain plus `would_send` and `skip_reason`.
+- `GET /settings` returns the account settings including `resume_tex` and `resume_updated_at`. `/auth/me` carries `has_resume` but never the resume itself.
+- `resume_tex` is limited to 50,000 characters counted as Unicode code points (the frontend must count with `[...text].length`, not `.length`). An empty or blank `resume_tex` clears the resume.
+- `GET /applications/{id}/comparison` always returns 200 with `{ "blocked_reason": "no_resume" | "no_job_description" | null, "comparison": {...} | null }`; the saved comparison is returned even when blocked. `POST` returns the same body with the fresh comparison on success, and `409` when blocked, with `code` matching `blocked_reason` (`RESUME_REQUIRED` for `no_resume`, `JOB_DESCRIPTION_REQUIRED` for `no_job_description`). The comparison carries `matched`, `missing`, `requirement_count`, `match_percentage`, `ran_at` and `is_stale`.
+- `match_percentage: null` means "No recognised requirements found". `is_stale` drives the "Resume or job description changed since this comparison" notice. `matched` and `missing` are alphabetical canonical term names.
 
 ## Frontend types
 

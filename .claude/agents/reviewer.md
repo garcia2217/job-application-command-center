@@ -1,7 +1,7 @@
 ---
 name: reviewer
 description: Reviews an implementer's diff against the plan and the PRD acceptance criteria. Use for every review and scoped re-review; the orchestrator adjudicates findings, it does not review line by line itself.
-model: sonnet
+model: opus
 effort: medium
 tools: Read, Bash, Glob, Grep
 ---

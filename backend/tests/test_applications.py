@@ -416,3 +416,69 @@ async def test_quiet_filter_oldest_first_with_days(
     everything = (await owner_client.get("/applications")).json()
     assert len(everything) == 3
     assert everything[0]["days_since_activity"] == 0
+
+
+# --- job_description_updated_at (milestone 4) ---------------------------------
+
+
+async def _jd_updated_at(db_session: AsyncSession, application_id: int):
+    db_session.expire_all()
+    row = await db_session.get(Application, application_id)
+    return row.job_description_updated_at
+
+
+async def test_create_sets_job_description_timestamp(
+    owner_client: AsyncClient,
+    owner_account: Account,
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    frozen = datetime(2026, 11, 5, 9, 0, tzinfo=UTC)
+    monkeypatch.setattr(application_service_module, "utcnow", lambda: frozen)
+    company = await make_company(db_session, owner_account)
+    base = {"company_id": company.id}
+
+    with_jd = await owner_client.post(
+        "/applications", json={**base, "role_title": "A", "job_description": "Python"}
+    )
+    without = await owner_client.post("/applications", json={**base, "role_title": "B"})
+    blank = await owner_client.post(
+        "/applications", json={**base, "role_title": "C", "job_description": "  \n "}
+    )
+    stamp = await _jd_updated_at(db_session, with_jd.json()["id"])
+    assert stamp is not None and stamp.replace(tzinfo=UTC) == frozen
+    assert await _jd_updated_at(db_session, without.json()["id"]) is None
+    assert await _jd_updated_at(db_session, blank.json()["id"]) is None
+
+
+async def test_update_sets_job_description_timestamp_only_on_change(
+    owner_client: AsyncClient,
+    owner_account: Account,
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    t1 = datetime(2026, 11, 5, 9, 0, tzinfo=UTC)
+    t2 = t1 + timedelta(hours=1)
+    t3 = t1 + timedelta(hours=2)
+    monkeypatch.setattr(application_service_module, "utcnow", lambda: t1)
+    company = await make_company(db_session, owner_account)
+    created = await owner_client.post(
+        "/applications",
+        json={
+            "company_id": company.id,
+            "role_title": "A",
+            "job_description": "Python",
+        },
+    )
+    app_id = created.json()["id"]
+    url = f"/applications/{app_id}"
+
+    monkeypatch.setattr(application_service_module, "utcnow", lambda: t2)
+    await owner_client.patch(url, json={"job_description": "Python"})
+    assert (await _jd_updated_at(db_session, app_id)).replace(tzinfo=UTC) == t1
+    await owner_client.patch(url, json={"notes": "hello"})
+    assert (await _jd_updated_at(db_session, app_id)).replace(tzinfo=UTC) == t1
+
+    monkeypatch.setattr(application_service_module, "utcnow", lambda: t3)
+    await owner_client.patch(url, json={"job_description": "Python and Go"})
+    assert (await _jd_updated_at(db_session, app_id)).replace(tzinfo=UTC) == t3

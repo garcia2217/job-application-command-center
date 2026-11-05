@@ -96,12 +96,15 @@ class ApplicationService:
         fields = payload.model_dump(
             exclude={"company", "company_id", "confirm_duplicate"}
         )
+        now = utcnow()
         application = Application(
             account_id=account.id,
             company_id=company.id,
-            last_activity_at=utcnow(),
+            last_activity_at=now,
             **fields,
         )
+        if (application.job_description or "").strip():
+            application.job_description_updated_at = now
         self._validate_rules(application, account)
         self.db.add(application)
         await self.db.commit()
@@ -114,8 +117,14 @@ class ApplicationService:
         changes = payload.model_dump(exclude_unset=True)
         if "company_id" in changes:
             await self.companies.get(account.id, changes["company_id"])
+        jd_changed = (
+            "job_description" in changes
+            and changes["job_description"] != application.job_description
+        )
         for field, value in changes.items():
             setattr(application, field, value)
+        if jd_changed:
+            application.job_description_updated_at = utcnow()
         self._validate_rules(application, account)
         record_activity(application)
         await self.db.commit()

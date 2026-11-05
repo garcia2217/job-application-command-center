@@ -163,3 +163,127 @@ async def test_digest_preview_empty_and_demo(
 async def test_preview_requires_sign_in(client: AsyncClient) -> None:
     assert (await client.get("/settings/digest-preview")).status_code == 401
     assert (await client.get("/settings/job-runs")).status_code == 401
+
+
+# --- Resume (milestone 4) ---------------------------------------------------
+
+T1 = datetime(2026, 11, 5, 9, 0, tzinfo=UTC)
+T2 = T1 + timedelta(hours=2)
+
+
+def _freeze_settings_clock(monkeypatch, moment: datetime) -> None:
+    from app.services import settings_service as settings_module
+
+    monkeypatch.setattr(settings_module, "utcnow", lambda: moment)
+
+
+def _ts(value: str | None) -> str | None:
+    # SQLite reloads naive timestamps (no "Z"); Postgres keeps them aware.
+    return value.removesuffix("Z") if value else value
+
+
+async def test_get_settings_defaults(owner_client: AsyncClient) -> None:
+    response = await owner_client.get("/settings")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["quiet_threshold_days"] == 7
+    assert body["timezone"]
+    assert body["resume_tex"] is None
+    assert body["resume_updated_at"] is None
+    assert body["email"] == "owner@example.com"
+    assert body["has_resume"] is False
+
+
+async def test_get_settings_requires_session(client: AsyncClient) -> None:
+    assert (await client.get("/settings")).status_code == 401
+
+
+async def test_save_resume_round_trip(owner_client: AsyncClient, monkeypatch) -> None:
+    _freeze_settings_clock(monkeypatch, T1)
+    response = await owner_client.patch(
+        "/settings", json={"resume_tex": "\\textbf{Python}"}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["resume_tex"] == "\\textbf{Python}"
+    assert body["resume_updated_at"].startswith("2026-11-05T09:00:00")
+    fetched = (await owner_client.get("/settings")).json()
+    assert _ts(fetched.pop("resume_updated_at")) == _ts(body.pop("resume_updated_at"))
+    assert fetched == body
+
+
+async def test_resume_length_limit_counts_code_points(
+    owner_client: AsyncClient,
+) -> None:  # AC-06.9
+    ok = await owner_client.patch("/settings", json={"resume_tex": "a" * 50_000})
+    assert ok.status_code == 200
+    emoji = await owner_client.patch("/settings", json={"resume_tex": "😀" * 50_000})
+    assert emoji.status_code == 200
+
+    too_long = await owner_client.patch("/settings", json={"resume_tex": "a" * 50_001})
+    assert too_long.status_code == 422
+    error = too_long.json()["errors"][0]
+    assert error["field"] == "resume_tex"
+    assert error["message"] == "Resume must be 50,000 characters or fewer"
+    assert len(too_long.json()["errors"]) == 1
+
+
+async def test_resave_identical_resume_keeps_timestamp(
+    owner_client: AsyncClient, monkeypatch
+) -> None:
+    _freeze_settings_clock(monkeypatch, T1)
+    first = (
+        await owner_client.patch("/settings", json={"resume_tex": "Python"})
+    ).json()
+    _freeze_settings_clock(monkeypatch, T2)
+    same = (await owner_client.patch("/settings", json={"resume_tex": "Python"})).json()
+    assert _ts(same["resume_updated_at"]) == _ts(first["resume_updated_at"])
+    changed = (await owner_client.patch("/settings", json={"resume_tex": "Go"})).json()
+    assert changed["resume_updated_at"].startswith("2026-11-05T11:00:00")
+
+
+async def test_other_settings_leave_resume_timestamp(
+    owner_client: AsyncClient, monkeypatch
+) -> None:
+    _freeze_settings_clock(monkeypatch, T1)
+    first = (
+        await owner_client.patch("/settings", json={"resume_tex": "Python"})
+    ).json()
+    _freeze_settings_clock(monkeypatch, T2)
+    after = (
+        await owner_client.patch("/settings", json={"timezone": "Asia/Bangkok"})
+    ).json()
+    assert _ts(after["resume_updated_at"]) == _ts(first["resume_updated_at"])
+    assert after["resume_tex"] == "Python"
+
+
+async def test_blank_resume_clears_and_moves_timestamp(
+    owner_client: AsyncClient, monkeypatch
+) -> None:
+    _freeze_settings_clock(monkeypatch, T1)
+    await owner_client.patch("/settings", json={"resume_tex": "Python"})
+    _freeze_settings_clock(monkeypatch, T2)
+    cleared = (await owner_client.patch("/settings", json={"resume_tex": "   "})).json()
+    assert cleared["resume_tex"] is None
+    assert cleared["resume_updated_at"].startswith("2026-11-05T11:00:00")
+    assert (await owner_client.get("/auth/me")).json()["has_resume"] is False
+
+
+async def test_null_resume_is_rejected(owner_client: AsyncClient) -> None:
+    response = await owner_client.patch("/settings", json={"resume_tex": None})
+    assert response.status_code == 422
+    assert response.json()["errors"][0]["field"] == "resume_tex"
+
+
+async def test_me_has_resume_flag_and_never_the_resume(
+    owner_client: AsyncClient,
+) -> None:
+    before = (await owner_client.get("/auth/me")).json()
+    assert before["has_resume"] is False
+    assert "resume_tex" not in before
+
+    await owner_client.patch("/settings", json={"resume_tex": "Python"})
+    after = (await owner_client.get("/auth/me")).json()
+    assert after["has_resume"] is True
+    assert "resume_tex" not in after
+    assert "resume_updated_at" not in after

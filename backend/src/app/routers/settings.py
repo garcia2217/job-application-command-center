@@ -4,14 +4,13 @@ from fastapi import APIRouter, Depends
 
 from app.dependencies import CurrentAccountDep, DbDep, DigestServiceDep
 from app.models import JobType
-from app.schemas.auth import AccountResponse
 from app.schemas.digest import (
     DigestPreviewResponse,
     QuietItemResponse,
     UpcomingStageResponse,
 )
 from app.schemas.job_run import JobRunResponse, JobRunsResponse
-from app.schemas.settings import SettingsUpdate
+from app.schemas.settings import SettingsResponse, SettingsUpdate
 from app.services.job_run_service import latest_run
 from app.services.settings_service import SettingsService
 
@@ -25,7 +24,12 @@ def get_settings_service(db: DbDep) -> SettingsService:
 SettingsServiceDep = Annotated[SettingsService, Depends(get_settings_service)]
 
 
-@router.patch("", response_model=AccountResponse)
+@router.get("", response_model=SettingsResponse)
+async def get_settings(account: CurrentAccountDep):
+    return account
+
+
+@router.patch("", response_model=SettingsResponse)
 async def update_settings(
     payload: SettingsUpdate, account: CurrentAccountDep, service: SettingsServiceDep
 ):

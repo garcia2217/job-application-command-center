@@ -10,35 +10,24 @@ Where the project stands and what comes next. `docs/PRD.md` defines the product;
 |---|---|
 | F-01 to F-03: auth, applications, companies, contacts, stages | API built and tested; no UI |
 | F-04 and F-05: quiet check, weekly digest | API built and tested with test doubles; not yet verified live |
-| F-06: resume comparison | Not started, apart from the tables and one hand-written demo comparison |
+| F-06: resume comparison | API built and tested: resume saving, LaTeX text preparation, 217-term vocabulary, run and read endpoints, real seeded demo comparison; no UI |
 | Frontend | Not started: still the default `create-next-app` page |
 | Deployment and CI | None. Neon, QStash, Redis, Resend and hosting need the owner's accounts (`MANUAL_STEPS.md`) |
 
-All backend acceptance criteria for F-01 to F-05 have tests except AC-04.8, which needs a live scheduler.
+All backend acceptance criteria for F-01 to F-06 have tests except AC-04.8, which needs a live scheduler. F-06 calls no external service, so nothing in it waits on live verification.
 
 ## Next work
 
-### Milestone 4: F-06 backend
-Satisfy AC-06.1 to AC-06.10 at the API level. Already in place: `accounts.resume_tex`, `accounts.resume_updated_at`, `applications.job_description_updated_at`, and the `comparisons` table.
-
-Needed:
-- Resume saving: `PATCH /settings` doesn't accept one yet.
-- LaTeX text preparation, vocabulary of at least 150 terms, and whole-word matching.
-- Run and read comparison endpoints that expose what the UI needs for the disabled states (AC-06.6) and the "changed since this comparison" notice (AC-06.8).
-
-Watch out for:
-- `job_description_updated_at` is never written anywhere. Set it when the job description changes, or AC-06.8 fails for job description edits. Also confirm `resume_updated_at` is written on save.
-- The seeded comparison in `backend/src/app/demo_data.py` is hand-written with lowercase terms. Regenerate it with the real algorithm from a seeded resume and job description.
-
 ### Milestone 5: Frontend for F-01 to F-06
+F-06 contract notes for the UI (all in `docs/API_CONTRACT.md`): map `blocked_reason` to the PRD's disabled-Compare messages, show the "changed since this comparison" notice from `is_stale`, show "No recognised requirements found" when `match_percentage` is null, and count the 50,000-character resume limit with `[...text].length`, not `.length`.
+
 Build every screen per `docs/design/DESIGN_GUIDE.md`, using the `nextjs-patterns` skill. Add `src/lib/api.ts`, `types.ts` derived from `/openapi.json`, and the frontend half of the contract test in `docs/API_CONTRACT.md`. The frontend has no test runner yet. The skill's `/follow-ups` example is illustrative: the Needs follow-up list comes from `GET /applications?quiet=true`.
 
 ### Milestone 6: Final polish
 UI and tone. Needs the owner's review.
 
 ### Smaller updates
-- `README.md`: the Status section is out of date. Keep its "not yet verified live" list accurate.
-- Tag `test_expired_session_is_rejected` in `backend/tests/test_auth_service.py` with `# AC-01.5`.
+- Keep the README Status section's "not yet verified live" list accurate as integrations go live.
 
 ### Owner only
 Deployment and live verification of Neon, QStash, Redis and Resend, as listed in `MANUAL_STEPS.md`. G-03 needs two consecutive real Mondays.
@@ -52,13 +41,17 @@ Deployment and live verification of Neon, QStash, Redis and Resend, as listed in
 - **Auth:** opaque DB-backed session tokens, not JWT.
 - **Order:** F-06 backend, then the frontend, then polish.
 - **Tests:** don't retry `populate_existing` on `get_detail`; it broke `test_stages.py::test_move_up`.
+- **F-06 matching** (owner, 2026-11-05): the PRD's literal whole-word rule, so "React Native" also counts React (longest-match-wins is a possible refinement); saving an empty resume clears it; English-word terms (Express, Spring, Swift, Rust, Dart, Chef, Puppet, Make, Jest, REST, Rails, plus Spark, Helm, Bootstrap) are case-sensitive. A capitalised word at the start of a sentence ("Go to market.", "Make sure") is a known false positive (R-04), and tests document it.
+- **F-06 API:** `GET`/`POST /applications/{id}/comparison` both return `{blocked_reason, comparison}`; POST returns 409 `RESUME_REQUIRED` / `JOB_DESCRIPTION_REQUIRED` when blocked. The resume and job description timestamps move only when the text actually changes. The percentage rounds halves up. Requirements are listed alphabetically.
+- **Git author:** commits are authored as `garcia <emmanoelgarsia@gmail.com>` (set repo-locally in cloud sessions, whose default identity is not the owner's).
 
 ## Known open items (non-blocking)
 
 1. No test that a failed cross-field rule rolls back an inline company on `POST /applications`.
-2. `notes` and `job_description` have no length limit.
+2. `notes` and `job_description` have no length limit. A very long job description also makes a comparison slower to run (the scan is linear, so this is cost, not correctness).
 3. Possible Postgres vs SQLite differences: `func.lower` on role title vs `casefold`. Tests run on SQLite, and Postgres has only been exercised by hand up to milestone 2.
 4. No 404 test for `PUT` or `DELETE /applications/{foreign_id}/contacts/{cid}` (the code is correct).
 5. A naive `scheduled_at` uses `fold=0` in DST-repeated hours.
 6. `PATCH /applications/{id}` doesn't re-run the duplicate check when company or role changes.
 7. Digest dedupe is check-then-act, so a multi-worker deployment could double-send. Fix it with a unique index on (account, week anchor) or an advisory lock if the deployment ever gains workers.
+8. Most routes don't declare their 401/404/409 problem responses in OpenAPI; only the comparison routes do (`schemas/problem.py` `problem_responses()`). Retrofit the rest for NFR-01.
