@@ -324,7 +324,7 @@ export const api = {
     update: (appId: number, id: number, body: StageUpdate) => request<StageResponse>(`/applications/${appId}/stages/${id}`, { method: 'PATCH', body: json(body) }),
     remove: (appId: number, id: number) => request<void>(`/applications/${appId}/stages/${id}`, { method: 'DELETE' }),
     move: (appId: number, id: number, direction: 'up' | 'down') =>
-      request<StageResponse>(`/applications/${appId}/stages/${id}/move`, { method: 'POST', body: json({ direction }) }),
+      request<StageResponse[]>(`/applications/${appId}/stages/${id}/move`, { method: 'POST', body: json({ direction }) }),
   },
   companies: {
     list: cache(() => request<CompanyResponse[]>('/companies')),
