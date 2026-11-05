@@ -50,6 +50,11 @@ export function toLocalInput(iso: string | null, timeZone: string): string {
   return `${localDateKey(date, timeZone)}T${hourMinute(date, timeZone)}`
 }
 
+/** Today's calendar date in the zone as `YYYY-MM-DD`, e.g. a date input's `max`. */
+export function localDate(now: Date, timeZone: string): string {
+  return localDateKey(now, timeZone)
+}
+
 export function todayTitle(now: Date, timeZone: string): string {
   const p = parts(now, timeZone, { weekday: 'long', day: 'numeric', month: 'long' })
   return `${p.weekday}, ${p.day} ${p.month}`

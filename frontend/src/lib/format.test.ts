@@ -5,6 +5,7 @@ import {
   formatDateTime,
   formatDay,
   isUrgentSilence,
+  localDate,
   relativeActivity,
   toLocalInput,
   todayTitle,
@@ -150,5 +151,21 @@ describe('isUrgentSilence', () => {
     [9, 3, true],
   ])('%p days at threshold %p → %p', (days, threshold, urgent) => {
     expect(isUrgentSilence(days, threshold)).toBe(urgent)
+  })
+})
+
+describe('localDate', () => {
+  test('YYYY-MM-DD in the zone, for a date input max', () => {
+    expect(localDate(NOW, 'UTC')).toBe('2026-11-05')
+  })
+
+  test('the zone decides the date near midnight UTC', () => {
+    const late = new Date('2026-11-05T23:30:00Z')
+    expect(localDate(late, 'Asia/Tokyo')).toBe('2026-11-06')
+    expect(localDate(new Date('2026-11-05T02:00:00Z'), 'America/New_York')).toBe('2026-11-04')
+  })
+
+  test('pads month and day', () => {
+    expect(localDate(new Date('2026-02-03T12:00:00Z'), 'UTC')).toBe('2026-02-03')
   })
 })
