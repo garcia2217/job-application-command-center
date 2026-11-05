@@ -18,3 +18,15 @@ export function applicationsSubtitle(total: number, quiet: number): string {
   const head = total === 1 ? '1 application' : `${total} applications`
   return quiet > 0 ? `${head} · ${quiet} quiet` : head
 }
+
+function count(n: number, one: string, many: string): string {
+  return `${n} ${n === 1 ? one : many}`
+}
+
+export function companiesSubtitle(total: number): string {
+  return count(total, 'company', 'companies')
+}
+
+export function contactsSubtitle(total: number): string {
+  return count(total, 'contact', 'contacts')
+}

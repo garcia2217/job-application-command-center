@@ -1,11 +1,9 @@
 // The fast first pass over payload.ts output; the backend stays the authority.
 // Messages are PRD copy; error keys are the backend's snake_case field names.
 import * as z from 'zod'
-import { codePointLength } from './format'
 import type { Mode } from './payload'
+import { isOverResumeLimit } from './settings'
 import { APPLICATION_STATUSES, STAGE_OUTCOMES, WORK_ARRANGEMENTS } from './types'
-
-const RESUME_MAX = 50_000
 
 const httpUrl = (error: string) => z.url({ protocol: /^https?$/, error })
 const optionalText = z.string().nullish()
@@ -121,6 +119,6 @@ export const settingsSchema = z.object({
   timezone: z.string().optional(),
   resume_tex: z
     .string()
-    .refine((text) => codePointLength(text) <= RESUME_MAX, { error: 'Resume must be 50,000 characters or fewer' })
+    .refine((text) => !isOverResumeLimit(text), { error: 'Resume must be 50,000 characters or fewer' })
     .optional(),
 })

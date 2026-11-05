@@ -1,11 +1,13 @@
 import { formatDateTime } from '@/lib/format'
 import { jobRunText } from '@/lib/labels'
-import type { JobRunResponse, JobRunsResponse } from '@/lib/types'
+import type { JobRunResponse, JobRunsResponse, JobType } from '@/lib/types'
 
-function RunLine({ label, run, timeZone }: { label: string; run: JobRunResponse | null; timeZone: string }) {
+type RunLineProps = { label: string; job: JobType; run: JobRunResponse | null; timeZone: string }
+
+function RunLine({ label, job, run, timeZone }: RunLineProps) {
   return (
     <p>
-      {label}: {jobRunText(run)}
+      {label}: {jobRunText(run, job)}
       {run && (
         <>
           {' · '}
@@ -20,8 +22,8 @@ function RunLine({ label, run, timeZone }: { label: string; run: JobRunResponse 
 export function JobRunSummary({ runs, timeZone }: { runs: JobRunsResponse; timeZone: string }) {
   return (
     <div className="flex flex-col gap-2">
-      <RunLine label="Daily check" run={runs.quiet_check} timeZone={timeZone} />
-      <RunLine label="Weekly digest" run={runs.digest} timeZone={timeZone} />
+      <RunLine label="Daily check" job="quiet_check" run={runs.quiet_check} timeZone={timeZone} />
+      <RunLine label="Weekly digest" job="digest" run={runs.digest} timeZone={timeZone} />
     </div>
   )
 }

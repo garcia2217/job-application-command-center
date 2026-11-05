@@ -36,45 +36,49 @@ describe('enum labels', () => {
 
 // Fixture details are the backend's stored strings (digest_service.py, quiet_check_service.py).
 describe('jobRunText', () => {
-  test('null → first check pending', () => {
-    expect(jobRunText(null)).toBe('First check pending.')
+  test('a daily check that never ran → first check pending (F-04)', () => {
+    expect(jobRunText(null, 'quiet_check')).toBe('First check pending.')
+  })
+
+  test('a digest that never ran has its own text', () => {
+    expect(jobRunText(null, 'digest')).toBe('No digest run yet.')
   })
 
   test('succeeded ignores detail', () => {
-    expect(jobRunText(run('succeeded', 'Flagged 3 application(s)'))).toBe('Succeeded')
-    expect(jobRunText(run('succeeded', 'Sent to owner@example.com'))).toBe('Succeeded')
+    expect(jobRunText(run('succeeded', 'Flagged 3 application(s)'), 'digest')).toBe('Succeeded')
+    expect(jobRunText(run('succeeded', 'Sent to owner@example.com'), 'digest')).toBe('Succeeded')
   })
 
   test('skipped with the stored "Skipped: …" detail does not repeat the prefix', () => {
-    expect(jobRunText(run('skipped', 'Skipped: nothing to report'))).toBe('Skipped: nothing to report')
-    expect(jobRunText(run('skipped', 'Skipped: demo account'))).toBe('Skipped: demo account')
+    expect(jobRunText(run('skipped', 'Skipped: nothing to report'), 'digest')).toBe('Skipped: nothing to report')
+    expect(jobRunText(run('skipped', 'Skipped: demo account'), 'digest')).toBe('Skipped: demo account')
   })
 
   test('skipped with a bare reason gets the prefix', () => {
-    expect(jobRunText(run('skipped', 'nothing to report'))).toBe('Skipped: nothing to report')
+    expect(jobRunText(run('skipped', 'nothing to report'), 'digest')).toBe('Skipped: nothing to report')
   })
 
   test('skipped with no detail', () => {
-    expect(jobRunText(run('skipped', null))).toBe('Skipped')
+    expect(jobRunText(run('skipped', null), 'digest')).toBe('Skipped')
   })
 
   test('not_sent', () => {
-    expect(jobRunText(run('not_sent', 'Not sent: daily email limit reached'))).toBe(
+    expect(jobRunText(run('not_sent', 'Not sent: daily email limit reached'), 'digest')).toBe(
       'Not sent: daily email limit reached',
     )
-    expect(jobRunText(run('not_sent', null))).toBe('Not sent: daily email limit reached')
+    expect(jobRunText(run('not_sent', null), 'digest')).toBe('Not sent: daily email limit reached')
   })
 
   test('failed with the stored "Failed: …" detail does not repeat the prefix', () => {
-    expect(jobRunText(run('failed', 'Failed: OperationalError'))).toBe('Failed: OperationalError')
+    expect(jobRunText(run('failed', 'Failed: OperationalError'), 'digest')).toBe('Failed: OperationalError')
   })
 
   test('failed with a bare reason gets the prefix', () => {
-    expect(jobRunText(run('failed', 'timeout'))).toBe('Failed: timeout')
+    expect(jobRunText(run('failed', 'timeout'), 'digest')).toBe('Failed: timeout')
   })
 
   test('failed with no detail', () => {
-    expect(jobRunText(run('failed', null))).toBe('Failed: unknown error')
+    expect(jobRunText(run('failed', null), 'digest')).toBe('Failed: unknown error')
   })
 })
 

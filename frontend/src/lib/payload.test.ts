@@ -204,4 +204,8 @@ describe('settingsPayload', () => {
   test('the resume is sent as-is, untrimmed', () => {
     expect(settingsPayload({ resume_tex: '  \\section{X}\n' })).toEqual({ resume_tex: '  \\section{X}\n' })
   })
+
+  test('textarea CRLF line breaks become LF, so the server counts what the counter showed', () => {
+    expect(settingsPayload({ resume_tex: 'a\r\nb\r\n' })).toEqual({ resume_tex: 'a\nb\n' })
+  })
 })

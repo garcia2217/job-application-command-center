@@ -102,3 +102,23 @@ describe('companyTakenState', () => {
     expect(companyTakenState(companies, undefined, values)).toEqual(expected)
   })
 })
+
+describe('companyTakenState on the company form', () => {
+  const values = { name: ' acme robotics ', website: '' }
+  const companies = [{ id: 4, name: 'Acme Robotics' }]
+
+  test('the error goes on the field named by the caller', () => {
+    expect(companyTakenState(companies, 4, values, 'name')).toEqual({
+      existingCompany: { id: 4, name: 'Acme Robotics' },
+      errors: { name: ['A company named Acme Robotics already exists.'] },
+      values,
+    })
+  })
+
+  test('without the existing company, the typed name from that field', () => {
+    expect(companyTakenState([], 4, values, 'name')).toEqual({
+      errors: { name: ['A company named acme robotics already exists.'] },
+      values,
+    })
+  })
+})

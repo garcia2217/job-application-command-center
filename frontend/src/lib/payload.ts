@@ -1,3 +1,5 @@
+import { normalizeLineBreaks } from './settings'
+
 // Pure form-values → API payload mappers, used by the Server Actions before zod.
 // Create: a blank optional field is omitted. Update: a blank optional field is
 // null (clears it), and every field the form holds is sent. Required fields are
@@ -81,7 +83,8 @@ export function settingsPayload(form: FormInput): Payload {
   const out: Payload = {}
   required(out, form, 'quiet_threshold_days', 'update', asInt)
   required(out, form, 'timezone', 'update')
-  // sent as-is: an empty string clears the resume; null would be rejected
-  if (form.resume_tex !== undefined) out.resume_tex = form.resume_tex
+  // untrimmed: an empty string clears the resume; null would be rejected.
+  // LF line breaks, so the backend counts what the counter counted.
+  if (form.resume_tex !== undefined) out.resume_tex = normalizeLineBreaks(form.resume_tex)
   return out
 }

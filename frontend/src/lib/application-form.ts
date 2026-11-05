@@ -36,17 +36,21 @@ export function companyOptions(companies: CompanyRef[], extra?: CompanyRef): Com
   return sorted
 }
 
-/** COMPANY_NAME_TAKEN on an inline "New company…": the field error, plus the existing company to switch to when known. */
+/**
+ * COMPANY_NAME_TAKEN: the field error, plus the existing company to offer when known.
+ * `field` is the name input: `company.name` for the inline "New company…", `name` on the company form.
+ */
 export function companyTakenState(
   companies: CompanyRef[],
   existingId: number | undefined,
   values: Record<string, string>,
+  field = 'company.name',
 ): FormState {
   const existing = companies.find((company) => company.id === existingId)
-  const name = existing?.name ?? (values['company.name'] ?? '').trim()
+  const name = existing?.name ?? (values[field] ?? '').trim()
   return {
     ...(existing ? { existingCompany: { id: existing.id, name: existing.name } } : {}),
-    errors: { 'company.name': [`A company named ${name} already exists.`] },
+    errors: { [field]: [`A company named ${name} already exists.`] },
     values,
   }
 }

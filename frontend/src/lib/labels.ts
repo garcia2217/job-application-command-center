@@ -1,4 +1,4 @@
-import type { ApplicationStatus, BlockedReason, JobRunResponse, StageOutcome, WorkArrangement } from './types'
+import type { ApplicationStatus, BlockedReason, JobRunResponse, JobType, StageOutcome, WorkArrangement } from './types'
 
 export const STATUS_LABEL: Record<ApplicationStatus, string> = {
   wishlist: 'Wishlist',
@@ -44,8 +44,15 @@ function reason(detail: string | null, prefix: string): string | null {
   return stripped || null
 }
 
-export function jobRunText(run: JobRunResponse | null): string {
-  if (!run) return 'First check pending.'
+// "First check pending." is the PRD's never-run text for the daily check (F-04);
+// the weekly digest has its own, since it isn't a check.
+const NEVER_RUN: Record<JobType, string> = {
+  quiet_check: 'First check pending.',
+  digest: 'No digest run yet.',
+}
+
+export function jobRunText(run: JobRunResponse | null, job: JobType): string {
+  if (!run) return NEVER_RUN[job]
   switch (run.status) {
     case 'succeeded':
       return 'Succeeded'

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { applicationsSubtitle, homeSubtitle } from '@/lib/summary'
+import { applicationsSubtitle, companiesSubtitle, contactsSubtitle, homeSubtitle } from '@/lib/summary'
 
 describe('homeSubtitle', () => {
   test('both halves, plural', () => {
@@ -32,5 +32,21 @@ describe('applicationsSubtitle', () => {
   test('drops a zero quiet count', () => {
     expect(applicationsSubtitle(8, 0)).toBe('8 applications')
     expect(applicationsSubtitle(0, 0)).toBe('0 applications')
+  })
+})
+
+describe('companiesSubtitle', () => {
+  test('plural and singular', () => {
+    expect(companiesSubtitle(4)).toBe('4 companies')
+    expect(companiesSubtitle(1)).toBe('1 company')
+    expect(companiesSubtitle(0)).toBe('0 companies')
+  })
+})
+
+describe('contactsSubtitle', () => {
+  test('plural and singular', () => {
+    expect(contactsSubtitle(4)).toBe('4 contacts')
+    expect(contactsSubtitle(1)).toBe('1 contact')
+    expect(contactsSubtitle(0)).toBe('0 contacts')
   })
 })
