@@ -1,4 +1,5 @@
-from sqlalchemy import MetaData
+from sqlalchemy import MetaData, event
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -15,8 +16,19 @@ class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
 
+def _enable_sqlite_foreign_keys(dbapi_connection: object, _record: object) -> None:
+    # SQLite ignores FOREIGN KEY / ON DELETE CASCADE unless enabled per
+    # connection; Postgres enforces them always.
+    cursor = dbapi_connection.cursor()  # type: ignore[attr-defined]
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
+
 def build_engine(url: str, **kwargs: object) -> AsyncEngine:
-    return create_async_engine(url, pool_pre_ping=True, **kwargs)
+    engine = create_async_engine(url, pool_pre_ping=True, **kwargs)
+    if make_url(url).get_backend_name() == "sqlite":
+        event.listen(engine.sync_engine, "connect", _enable_sqlite_foreign_keys)
+    return engine
 
 
 def build_sessionmaker(engine: AsyncEngine) -> async_sessionmaker:

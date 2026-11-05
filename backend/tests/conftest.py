@@ -7,14 +7,13 @@ from collections.abc import AsyncIterator, Iterator
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import event
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.pool import StaticPool
 
 import app.models
 from app.clock import utcnow
 from app.config import get_settings
-from app.database import Base
+from app.database import Base, build_engine
 from app.dependencies import get_db
 from app.integrations.qstash import verify_qstash_signature
 from app.main import create_app
@@ -32,17 +31,12 @@ def _fresh_settings() -> Iterator[None]:
 
 @pytest.fixture
 async def engine():
-    engine = create_async_engine(
+    # build_engine turns on SQLite foreign keys, matching Postgres cascades.
+    engine = build_engine(
         "sqlite+aiosqlite:///:memory:",
         poolclass=StaticPool,
         connect_args={"check_same_thread": False},
     )
-
-    @event.listens_for(engine.sync_engine, "connect")
-    def _enable_foreign_keys(dbapi_connection, _record) -> None:
-        # Match Postgres ON DELETE CASCADE semantics in tests.
-        dbapi_connection.execute("PRAGMA foreign_keys=ON")
-
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield engine
