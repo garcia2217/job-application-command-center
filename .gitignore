@@ -4,14 +4,15 @@
 .env.*
 !.env.example
 
-# AI workflow files — keep out of the public repo
-AGENTS.md
-CLAUDE.md
-.claude/
+# Operator-only and local agent files; agent instructions, specs and plans are tracked
+.claude/settings.local.json
+.claude/skills/fastapi-patterns/
+.claude/skills/product-design/
 .codex/
 .agents/
 docs/OPERATOR_RUNBOOK.md
-MANUAL_STEPS.md
-docs/superpowers/
+docs/superpowers/loop-improvements.md
+docs/superpowers/HANDOFF.md
+docs/superpowers/plans/reports/
 scripts/autonomous-run.sh
 logs/

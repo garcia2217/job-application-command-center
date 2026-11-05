@@ -299,7 +299,7 @@ Reviewer flow: open the URL → sign in with the demo credentials → browse the
 
 ### F-06: Resume and job-description comparison
 
-**Priority:** Must (first candidate to move to Future Features if time runs short; see R-01)
+**Priority:** Must
 **Description:** The owner pastes their resume once, as LaTeX (.tex) source. For any application with a job description, the app extracts requirements from the description using a built-in vocabulary and marks which appear in the resume. It does not use AI.
 **User stories:**
 
@@ -381,7 +381,6 @@ Stated by the owner:
 - **Email:** Resend or SendGrid, chosen at build time by free-tier limits.
 - **Hosting:** the frontend on Vercel or Netlify; the API on Render's free tier, which sleeps after about 15 minutes idle. This tradeoff must be noted in the README.
 - **Budget:** free tiers only.
-- **Deadline:** agent build work is funded by API credits that expire **19 September 2026**.
 - **Portfolio intent:** backend depth must be visible (scheduled jobs, relational data, real authentication, documented API).
 - The owner does **not** require any specific session or token mechanism. The authentication mechanism is the building agent's choice.
 - Stack pieces must not be swapped without the owner's approval.
@@ -400,7 +399,6 @@ Stated by the owner:
 
 | ID   | Risk                                                                                                      | Mitigation                                                                                                                         |
 | ---- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| R-01 | The deadline is three days away; the full MVP may not fit.                                                | Build in the order F-01 → F-02 → F-03 → F-04 → F-05 → F-06. If time runs short, F-06 moves to Future Features first.               |
 | R-02 | The API host sleeps, so scheduled triggers or the reviewer's first visit hit a cold start.                | Jobs are idempotent and tolerate late runs (NFR-05, F-05). The README warns reviewers that the first load may take about a minute. |
 | R-03 | The digest lands in spam because the sender domain is unverified.                                         | Verify a sender domain with the provider. Check G-03 against the inbox, not just the provider's "sent" status.                     |
 | R-04 | Keyword matching gives false positives or negatives (ambiguous terms, terms missing from the vocabulary). | Case-sensitive handling for short terms, an alias list, and test cases for known traps. AI extraction is planned as FF-03.         |
