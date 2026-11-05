@@ -1,26 +1,105 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Tokens: DESIGN_GUIDE §2 and docs/design/home.html. Components use these, never raw hex or px. */
+@theme {
+  --breakpoint-*: initial;
+  --breakpoint-desk: 900px;   /* the guide's only layout breakpoint */
+  --breakpoint-wide: 1280px;  /* rail grows to 360px */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Surfaces */
+  --color-bg: #f7f7f8;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f1f1f3;
+  --color-border: #e3e3e7;
+  --color-border-strong: #c9c9d1;
+
+  /* Text */
+  --color-text: #1b1b1f;
+  --color-text-muted: #5f5f6b;
+  --color-text-faint: #86868f;
+
+  /* Accent: the only decorative color */
+  --color-accent: #3b4ee0;
+  --color-accent-hover: #2f3fc4;
+  --color-accent-soft: #eceefc;
+  --color-on-accent: #fff;
+
+  /* Semantic: meaning only */
+  --color-warn: #a35a00;
+  --color-warn-soft: #fdf1e0;
+  --color-danger: #b3261e;
+  --color-danger-soft: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  --color-ok: #1a6b47;
+
+  /* Status dots (unchanged in dark mode) */
+  --color-status-wishlist: #9a9aa5;
+  --color-status-applied: #4f7fd6;
+  --color-status-interviewing: #c98a1f;
+  --color-status-offer: #2f9e6a;
+  --color-status-rejected: #c4554d;
+  --color-status-withdrawn: #7d7d88;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* Tailwind inlines shadow values into the utility, so a :root override can't
+     switch them; dark mode uses its own token via dark:shadow-panel-dark. */
+  --shadow-panel: 0 1px 2px rgba(20, 20, 30, 0.06), 0 1px 3px rgba(20, 20, 30, 0.04);
+  --shadow-panel-dark: 0 1px 2px rgba(0, 0, 0, 0.4);
+
+  --text-title: 26px;
+  --text-title-sm: 22px;
+  --text-section: 15px;
+  --text-body: 14px;
+  --text-meta: 13px;
+  --text-label: 12px;
+  --text-nav: 11px;
+  --text-week-date: 18px;
+
+  --spacing-row: 60px;
+  --spacing-topbar: 57px;
+  --spacing-bottomnav: 56px;
+  --spacing-nav-clear: 96px;
+  --spacing-sidebar: 220px;
+  --spacing-rail: 320px;
+  --spacing-rail-wide: 360px;
+  --spacing-main: 1200px;
+  --spacing-form: 640px;
+  --spacing-when: 58px;
+  --spacing-dot: 7px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --color-bg: #131316;
+    --color-surface: #1b1b1f;
+    --color-surface-sunken: #232328;
+    --color-border: #2e2e35;
+    --color-border-strong: #44444e;
+    --color-text: #ececf0;
+    --color-text-muted: #a1a1ac;
+    --color-text-faint: #7d7d88;
+    --color-accent: #8a97ff;
+    --color-accent-hover: #a3adff;
+    --color-accent-soft: #23253d;
+    --color-on-accent: #14142a;
+    --color-warn: #e5a75a;
+    --color-warn-soft: #34291a;
+    --color-danger: #f2837c;
+    --color-ok: #6fc79b;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body { @apply bg-bg text-text font-sans; font-size: 16px; line-height: 1.5; }
+  h1, h2, h3 { font-weight: 600; letter-spacing: -0.01em; }
+  :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
 }
