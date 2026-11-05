@@ -1,6 +1,6 @@
 # Milestone 5 Design: Frontend for F-01 to F-06
 
-**Date:** 2026-11-05 · **Status:** draft, awaiting owner approval
+**Date:** 2026-11-05 · **Status:** approved by owner (chat, 2026-11-05), with all three recommendations below
 **PRD features:** F-01 to F-06 (the UI half of every acceptance criterion), NFR-03, NFR-07, NFR-08.
 **Gate (AGENTS.md):** `bun run lint`, `bun run build`, and the frontend half of the API contract fixture test.
 **Scope:** `frontend/`, plus two small read-only backend endpoints if the owner approves decision 1 below. Tone and visual polish belong to milestone 6.
@@ -100,7 +100,7 @@ Every fetching segment has `loading.tsx` with 60px skeleton rows. `(app)/error.t
 
 Both read-only, session-authenticated, scoped to the account, with `response_model`s and pytest coverage, written test-first:
 - `GET /contacts` → `ContactListItem[]` = `ContactResponse` + `company_name`, sorted by name (case-insensitive), then id.
-- `GET /stages/upcoming` → `UpcomingStageResponse[]` (the existing digest schema) for stages with `scheduled_at` in `[now, now + 7 days)`, soonest first. Reuses the digest's stage query with a different window.
+- `GET /stages/upcoming` → `UpcomingStageSummary[]` (`application_id`, `company`, `role_title`, `stage_name`, `scheduled_at`: the digest's item minus `url`, which needs `APP_BASE_URL`) for stages with `scheduled_at` in `[now, now + 7 days)`, soonest first. Reuses the digest's stage query with a different window.
 
 `docs/API_CONTRACT.md` gets both routes.
 
